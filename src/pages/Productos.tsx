@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { PageHeader } from "@/components/PageHeader"
 
 function ProductFormDialog({
   open,
@@ -185,26 +186,25 @@ export default function Productos() {
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-8">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Productos</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            El catálogo de belleza que se muestra en index.html.
-          </p>
-        </div>
-        <Button
-          size="sm"
-          onClick={() => {
-            setEditing(null)
-            setDialogOpen(true)
-          }}
-        >
-          <Plus className="size-4" />
-          Nuevo producto
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Contenido"
+        titulo="Productos"
+        descripcion="El catálogo de belleza que se muestra en index.html."
+        acciones={
+          <Button
+            variant="gold"
+            onClick={() => {
+              setEditing(null)
+              setDialogOpen(true)
+            }}
+          >
+            <Plus className="size-4" />
+            Nuevo producto
+          </Button>
+        }
+      />
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
         {loading ? (
           <div className="flex flex-col gap-3 p-5">
             <Skeleton className="h-9 w-full" />

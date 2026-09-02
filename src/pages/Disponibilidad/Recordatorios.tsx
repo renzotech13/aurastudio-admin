@@ -51,7 +51,7 @@ export default function Recordatorios() {
   }
 
   return (
-    <section className="mb-8 rounded-lg border border-border bg-card p-5">
+    <section className="mb-8 rounded-2xl border border-border/70 bg-card p-5">
       <h2 className="mb-1 text-sm font-semibold">Recordatorios</h2>
       <p className="mb-4 text-xs text-muted-foreground">
         El bot le avisa a la clienta por WhatsApp antes de su cita, el mismo día. Define con cuántas horas de

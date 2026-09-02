@@ -1,13 +1,20 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+
+/* ==========================================================================
+   PANEL AURA STUDIO — identidad del sitio aplicada al admin
+   Los tokens salen de web/assets/css/style.css (dorado #C89116, marrón
+   #5C3A23, crema #E7E2D5, Libre Baskerville + Poppins). Las tipografías se
+   cargan por Google Fonts en index.html, igual que en la web.
+   ========================================================================== */
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: 'Libre Baskerville', 'Times New Roman', Georgia, serif;
+
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -16,11 +23,19 @@
     --color-sidebar-primary: var(--sidebar-primary);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
+
+    --color-gold: var(--gold);
+    --color-gold-soft: var(--gold-soft);
+    --color-gold-deep: var(--gold-deep);
+    --color-surface-2: var(--surface-2);
+
     --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-chart-6: var(--chart-6);
+
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -39,6 +54,7 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
+
     --color-status-pending: var(--status-pending);
     --color-status-pending-bg: var(--status-pending-bg);
     --color-status-confirmed: var(--status-confirmed);
@@ -47,108 +63,231 @@
     --color-status-cancelled-bg: var(--status-cancelled-bg);
     --color-status-completed: var(--status-completed);
     --color-status-completed-bg: var(--status-completed-bg);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
+
+    --radius-sm: calc(var(--radius) * 0.4);
+    --radius-md: calc(var(--radius) * 0.6);
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) * 1.4);
     --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    --radius-3xl: calc(var(--radius) * 2.4);
+    --radius-4xl: calc(var(--radius) * 3);
 }
 
 :root {
-    --background: oklch(0.985 0.006 75);
-    --foreground: oklch(0.24 0.025 45);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.24 0.025 45);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.24 0.025 45);
-    --primary: oklch(0.55 0.11 55);
-    --primary-foreground: oklch(0.99 0.005 75);
-    --secondary: oklch(0.955 0.014 70);
-    --secondary-foreground: oklch(0.32 0.05 45);
-    --muted: oklch(0.955 0.014 70);
-    --muted-foreground: oklch(0.52 0.03 50);
-    --accent: oklch(0.93 0.03 65);
-    --accent-foreground: oklch(0.32 0.05 45);
-    --destructive: oklch(0.577 0.19 25);
-    --border: oklch(0.9 0.018 65);
-    --input: oklch(0.9 0.018 65);
-    --ring: oklch(0.55 0.11 55);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.5rem;
-    --sidebar: oklch(0.97 0.012 70);
-    --sidebar-foreground: oklch(0.24 0.025 45);
-    --sidebar-primary: oklch(0.55 0.11 55);
-    --sidebar-primary-foreground: oklch(0.99 0.005 75);
-    --sidebar-accent: oklch(0.93 0.03 65);
-    --sidebar-accent-foreground: oklch(0.32 0.05 45);
-    --sidebar-border: oklch(0.9 0.018 65);
-    --sidebar-ring: oklch(0.55 0.11 55);
-    --status-pending: oklch(0.62 0.14 65);
-    --status-pending-bg: oklch(0.94 0.05 65);
-    --status-confirmed: oklch(0.5 0.13 155);
-    --status-confirmed-bg: oklch(0.93 0.05 155);
-    --status-cancelled: oklch(0.5 0.16 25);
-    --status-cancelled-bg: oklch(0.93 0.05 25);
-    --status-completed: oklch(0.45 0.03 250);
-    --status-completed-bg: oklch(0.92 0.012 250);
+    /* Marca */
+    --gold: #c89116;
+    --gold-deep: #a8790f;
+    --gold-soft: #dcb55c;
+    --brown: #5c3a23;
+    --brown-deep: #3a2415;
+
+    /* Superficies: la página es crema, las tarjetas casi blancas. */
+    --background: #f3eee3;
+    --surface-2: #efe8da;
+    --foreground: #2a1d13;
+    --card: #fbf8f2;
+    --card-foreground: #2a1d13;
+    --popover: #fbf8f2;
+    --popover-foreground: #2a1d13;
+
+    /* El marrón profundo es la acción principal; el dorado, el acento. */
+    --primary: #3a2415;
+    --primary-foreground: #f7f3ea;
+    --secondary: #e9e0cf;
+    --secondary-foreground: #43301f;
+    --muted: #ece5d7;
+    --muted-foreground: #7c6a56;
+    --accent: #f0e4c6;
+    --accent-foreground: #43301f;
+    --destructive: #b3261e;
+
+    --border: #ddd2bd;
+    --input: #d6c9b1;
+    --ring: #c89116;
+
+    /* Series validadas con scripts/validate_palette.js (skill dataviz):
+       6 slots, pares adyacentes, superficie #FBF8F2 — peor ΔE CVD 15.1,
+       normal 19.3, todos ≥ 3:1. El orden es el mecanismo de seguridad CVD:
+       no reordenar sin volver a validar. */
+    --chart-1: #b5820c;  /* dorado — el color de marca abre siempre */
+    --chart-2: #ad5078;  /* rosa   */
+    --chart-3: #4c8edf;  /* azul   */
+    --chart-4: #4e8626;  /* verde  */
+    --chart-5: #8959ba;  /* violeta*/
+    --chart-6: #05a388;  /* teal   */
+
+    /* Cromo de gráficos */
+    --chart-grid: #e5dcca;
+    --chart-axis: #cabca2;
+    --chart-ink-muted: #8b7a65;
+
+    /* Estado: reservado, nunca se reutiliza como serie. */
+    --status-pending: #a06a12;
+    --status-pending-bg: #f6ead0;
+    --status-confirmed: #1e7a4d;
+    --status-confirmed-bg: #dcefe2;
+    --status-cancelled: #b3352c;
+    --status-cancelled-bg: #f7e0dc;
+    --status-completed: #5a5346;
+    --status-completed-bg: #eae5da;
+
+    --radius: 0.75rem;
 }
 
 .dark {
-    --background: oklch(0.19 0.018 45);
-    --foreground: oklch(0.94 0.012 70);
-    --card: oklch(0.23 0.02 45);
-    --card-foreground: oklch(0.94 0.012 70);
-    --popover: oklch(0.23 0.02 45);
-    --popover-foreground: oklch(0.94 0.012 70);
-    --primary: oklch(0.72 0.11 60);
-    --primary-foreground: oklch(0.19 0.018 45);
-    --secondary: oklch(0.28 0.02 45);
-    --secondary-foreground: oklch(0.94 0.012 70);
-    --muted: oklch(0.28 0.02 45);
-    --muted-foreground: oklch(0.68 0.02 60);
-    --accent: oklch(0.32 0.03 55);
-    --accent-foreground: oklch(0.94 0.012 70);
-    --destructive: oklch(0.704 0.19 22);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.72 0.11 60);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.21 0.02 45);
-    --sidebar-foreground: oklch(0.94 0.012 70);
-    --sidebar-primary: oklch(0.72 0.11 60);
-    --sidebar-primary-foreground: oklch(0.19 0.018 45);
-    --sidebar-accent: oklch(0.32 0.03 55);
-    --sidebar-accent-foreground: oklch(0.94 0.012 70);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.72 0.11 60);
-    --status-pending: oklch(0.78 0.12 65);
-    --status-pending-bg: oklch(0.3 0.06 65);
-    --status-confirmed: oklch(0.75 0.13 155);
-    --status-confirmed-bg: oklch(0.28 0.06 155);
-    --status-cancelled: oklch(0.72 0.15 25);
-    --status-cancelled-bg: oklch(0.3 0.07 25);
-    --status-completed: oklch(0.75 0.015 250);
-    --status-completed-bg: oklch(0.3 0.015 250);
+    --gold: #dcb55c;
+    --gold-deep: #c89116;
+    --gold-soft: #ecd08c;
+    --brown: #7a5236;
+    --brown-deep: #f7f3ea;
+
+    --background: #1c140e;
+    --surface-2: #251b13;
+    --foreground: #f2ebdd;
+    --card: #241a12;
+    --card-foreground: #f2ebdd;
+    --popover: #241a12;
+    --popover-foreground: #f2ebdd;
+
+    --primary: #dcb55c;
+    --primary-foreground: #241a12;
+    --secondary: #33261b;
+    --secondary-foreground: #f2ebdd;
+    --muted: #2e2219;
+    --muted-foreground: #b3a48e;
+    --accent: #3a2b1e;
+    --accent-foreground: #f2ebdd;
+    --destructive: #e0796f;
+
+    --border: rgba(247, 243, 234, 0.12);
+    --input: rgba(247, 243, 234, 0.18);
+    --ring: #dcb55c;
+
+    /* Mismos seis tonos, escalonados para la superficie oscura #241A12
+       (peor ΔE CVD adyacente 17.0, normal 20.7, todos ≥ 3:1). */
+    --chart-1: #bb881a;
+    --chart-2: #aa4d75;
+    --chart-3: #5294e6;
+    --chart-4: #4b8323;
+    --chart-5: #8656b7;
+    --chart-6: #19aa8e;
+
+    --chart-grid: #35281d;
+    --chart-axis: #4a392a;
+    --chart-ink-muted: #a2917a;
+
+    --status-pending: #e0b053;
+    --status-pending-bg: #3a2c14;
+    --status-confirmed: #5cc08c;
+    --status-confirmed-bg: #16321f;
+    --status-cancelled: #e58b80;
+    --status-cancelled-bg: #3a1e19;
+    --status-completed: #b9ac97;
+    --status-completed-bg: #2e2820;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply bg-background text-foreground;
-    }
+    font-weight: 300;
+    letter-spacing: 0.005em;
+  }
   html {
     @apply font-sans;
-    }
+  }
+}
+
+/* ==========================================================================
+   Utilidades de marca
+   ========================================================================== */
+@layer components {
+  /* Titular display: serif en versalitas, como los h2 de la web. */
+  .aura-display {
+    font-family: var(--font-heading);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Antetítulo fino: el "eyebrow" dorado que precede a cada sección. */
+  .aura-eyebrow {
+    font-size: 10.5px;
+    font-weight: 400;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold-deep);
+  }
+
+  /* Cifras en columna: alineadas verticalmente. Las cifras grandes sueltas
+     (KPI, número héroe) usan las proporcionales por defecto. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* Filete dorado superior: el detalle que ata las tarjetas a la marca. */
+  .aura-crest {
+    position: relative;
+    overflow: hidden;
+  }
+  .aura-crest::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--gold) 22%,
+      var(--gold-soft) 50%,
+      var(--gold) 78%,
+      transparent
+    );
+    opacity: 0.85;
+  }
+
+  /* Rombo decorativo del sitio, reutilizado como viñeta de sección. */
+  .aura-diamond {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    rotate: 45deg;
+    background: var(--gold);
+  }
+}
+
+/* El scroll del panel, en tono marca y discreto. */
+@layer base {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--gold) 35%, transparent);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklch, var(--gold) 60%, transparent);
+    background-clip: content-box;
+  }
+}
+
+/* Respeta a quien pide menos movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

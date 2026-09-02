@@ -112,8 +112,14 @@ export default function CRM() {
       <header className="shrink-0 border-b border-border px-6 py-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Conversaciones</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="aura-eyebrow mb-1.5 flex items-center gap-2">
+              <span className="aura-diamond" aria-hidden />
+              Operación
+            </p>
+            <h1 className="aura-display text-[clamp(22px,2.4vw,30px)] leading-tight">
+              Conversaciones
+            </h1>
+            <p className="mt-1.5 text-[13px] text-muted-foreground">
               {loading
                 ? "Cargando…"
                 : `${conversaciones.length} en total · ${sinResponder} sin responder · ${conHumano} atendidas por una persona`}

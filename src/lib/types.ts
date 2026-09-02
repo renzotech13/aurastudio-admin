@@ -306,3 +306,126 @@ export type Enrollment = {
   requested_at: string
   decided_at: string | null
 }
+
+/* ---------- Control de caja (migración 0009) ---------- */
+
+export type MetodoPago = "efectivo" | "yape" | "plin" | "tarjeta" | "transferencia" | "otro"
+
+export const METODO_PAGO_LABEL: Record<MetodoPago, string> = {
+  efectivo: "Efectivo",
+  yape: "Yape",
+  plin: "Plin",
+  tarjeta: "Tarjeta",
+  transferencia: "Transferencia",
+  otro: "Otro",
+}
+
+export const METODOS_PAGO: MetodoPago[] = [
+  "efectivo",
+  "yape",
+  "plin",
+  "tarjeta",
+  "transferencia",
+  "otro",
+]
+
+/** Solo el efectivo pasa por el cajón físico: es lo único que entra al arqueo. */
+export const METODO_ES_EFECTIVO = (m: MetodoPago) => m === "efectivo"
+
+export type MovimientoTipo = "ingreso" | "egreso"
+
+export type CategoriaIngreso =
+  | "servicio"
+  | "producto"
+  | "curso"
+  | "propina"
+  | "adelanto"
+  | "otro"
+
+export type CategoriaEgreso =
+  | "insumo"
+  | "proveedor"
+  | "sueldo"
+  | "alquiler"
+  | "servicios"
+  | "movilidad"
+  | "retiro"
+  | "otro"
+
+export type CategoriaMovimiento = CategoriaIngreso | CategoriaEgreso
+
+export const CATEGORIAS_INGRESO: { id: CategoriaIngreso; label: string }[] = [
+  { id: "servicio", label: "Servicio" },
+  { id: "producto", label: "Producto" },
+  { id: "curso", label: "Curso / academia" },
+  { id: "propina", label: "Propina" },
+  { id: "adelanto", label: "Adelanto de cita" },
+  { id: "otro", label: "Otro ingreso" },
+]
+
+export const CATEGORIAS_EGRESO: { id: CategoriaEgreso; label: string }[] = [
+  { id: "insumo", label: "Insumos" },
+  { id: "proveedor", label: "Proveedor" },
+  { id: "sueldo", label: "Sueldo / comisión" },
+  { id: "alquiler", label: "Alquiler" },
+  { id: "servicios", label: "Luz, agua, internet" },
+  { id: "movilidad", label: "Movilidad" },
+  { id: "retiro", label: "Retiro de caja" },
+  { id: "otro", label: "Otro egreso" },
+]
+
+export const CATEGORIA_LABEL: Record<CategoriaMovimiento, string> = Object.fromEntries([
+  ...CATEGORIAS_INGRESO.map((c) => [c.id, c.label]),
+  ...CATEGORIAS_EGRESO.map((c) => [c.id, c.label]),
+]) as Record<CategoriaMovimiento, string>
+
+export type CajaEstado = "abierta" | "cerrada"
+
+export type CajaSesion = {
+  id: string
+  estado: CajaEstado
+  abierta_por: string
+  apertura_at: string
+  monto_inicial: number
+  apertura_nota: string | null
+  cerrada_por: string | null
+  cierre_at: string | null
+  monto_declarado: number | null
+  cierre_nota: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** Fila de la vista caja_sesiones_resumen: la sesión más su arqueo calculado. */
+export type CajaSesionResumen = CajaSesion & {
+  ingresos: number
+  egresos: number
+  ingresos_efectivo: number
+  egresos_efectivo: number
+  movimientos: number
+  efectivo_esperado: number
+  /** declarado − esperado. Null mientras la caja siga abierta. */
+  diferencia: number | null
+}
+
+export type MovimientoCaja = {
+  id: string
+  sesion_id: string | null
+  tipo: MovimientoTipo
+  categoria: CategoriaMovimiento
+  concepto: string
+  monto: number
+  metodo: MetodoPago
+  cita_id: string | null
+  cliente_id: string | null
+  servicio_id: string | null
+  producto_id: string | null
+  anulado: boolean
+  anulado_por: string | null
+  anulado_at: string | null
+  anulado_motivo: string | null
+  registrado_por: string
+  ocurrido_at: string
+  created_at: string
+  updated_at: string
+}

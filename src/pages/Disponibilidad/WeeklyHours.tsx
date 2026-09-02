@@ -86,7 +86,7 @@ export default function WeeklyHours() {
   }
 
   return (
-    <section className="mb-8 rounded-lg border border-border bg-card p-5">
+    <section className="mb-8 rounded-2xl border border-border/70 bg-card p-5">
       <h2 className="mb-1 text-sm font-semibold">Horario semanal</h2>
       <p className="mb-4 text-xs text-muted-foreground">
         Se repite cada semana. Un día sin bloques queda cerrado para agendar. Puedes agregar más de un bloque por

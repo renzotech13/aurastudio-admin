@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ChevronDown } from "lucide-react"
+import { PageHeader } from "@/components/PageHeader"
 
 /** Cita + los datos del cliente y servicio que trae el join de Supabase. */
 type CitaConDetalle = Cita & {
@@ -134,16 +135,15 @@ export default function Bookings() {
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-8">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Reservas</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {loading
-              ? "Cargando…"
-              : `${confirmadasCount} cita${confirmadasCount === 1 ? "" : "s"} confirmada${confirmadasCount === 1 ? "" : "s"}, de WhatsApp y la web.`}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Operación"
+        titulo="Reservas"
+        descripcion={
+          loading
+            ? "Cargando…"
+            : `${confirmadasCount} cita${confirmadasCount === 1 ? "" : "s"} confirmada${confirmadasCount === 1 ? "" : "s"}, de WhatsApp y la web.`
+        }
+      />
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)} className="mb-4">
         <TabsList>
@@ -155,7 +155,7 @@ export default function Bookings() {
         </TabsList>
       </Tabs>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
         {loading ? (
           <div className="flex flex-col gap-3 p-5">
             <Skeleton className="h-9 w-full" />

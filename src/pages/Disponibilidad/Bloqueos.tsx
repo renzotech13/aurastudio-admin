@@ -101,7 +101,7 @@ export default function Bloqueos() {
   }
 
   return (
-    <section className="rounded-lg border border-border bg-card p-5">
+    <section className="rounded-2xl border border-border/70 bg-card p-5">
       <h2 className="mb-1 text-sm font-semibold">Bloqueos puntuales</h2>
       <p className="mb-4 text-xs text-muted-foreground">
         Cierra un rango específico dentro del horario normal — vacaciones, un feriado, salir antes un día. No

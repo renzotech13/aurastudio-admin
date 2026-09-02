@@ -99,7 +99,7 @@ export default function CategoriesPanel() {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
         {loading ? (
           <div className="flex flex-col gap-3 p-5">
             <Skeleton className="h-9 w-full" />

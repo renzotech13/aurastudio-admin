@@ -1,16 +1,16 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import SiteContentPanel from "@/pages/Front/SiteContentPanel"
 import TestimonialsPanel from "@/pages/Front/TestimonialsPanel"
+import { PageHeader } from "@/components/PageHeader"
 
 export default function Front() {
   return (
     <div className="mx-auto max-w-5xl px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Front</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Textos e imágenes de index.html: logo, hero, sobre nosotros, testimonios y footer.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Contenido"
+        titulo="Front"
+        descripcion="Textos e imágenes de index.html: logo, hero, sobre nosotros, testimonios y footer."
+      />
 
       <Tabs defaultValue="logo">
         <TabsList className="mb-6">

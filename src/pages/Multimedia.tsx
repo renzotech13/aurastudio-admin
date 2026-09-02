@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
+import { PageHeader } from "@/components/PageHeader"
 
 const MIME_A_TIPO: Record<string, TipoMedia> = { image: "image", video: "video", audio: "audio" }
 
@@ -129,15 +130,13 @@ export default function Multimedia() {
 
   return (
     <div className="mx-auto max-w-3xl px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Multimedia</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Imágenes, videos y audios que el bot puede enviar solo en WhatsApp, o que tú mandas a mano desde una
-          conversación. La descripción de uso es lo que lee el bot para decidir cuándo mandar cada una.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Contenido"
+        titulo="Multimedia"
+        descripcion="Imágenes, videos y audios que el bot puede enviar solo en WhatsApp, o que tú mandas a mano desde una conversación. La descripción de uso es lo que lee el bot para decidir cuándo mandar cada una."
+      />
 
-      <form onSubmit={subir} className="mb-8 flex flex-col gap-4 rounded-lg border border-border bg-card p-5">
+      <form onSubmit={subir} className="mb-8 flex flex-col gap-4 rounded-2xl border border-border/70 bg-card p-5">
         <div className="grid gap-1.5">
           <Label htmlFor="mm-archivo" className="text-xs">
             Archivo
@@ -205,7 +204,7 @@ export default function Multimedia() {
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {plantillas.map((p) => (
-            <div key={p.id} className="overflow-hidden rounded-lg border border-border bg-card">
+            <div key={p.id} className="overflow-hidden rounded-2xl border border-border/70 bg-card">
               <div className="aspect-video bg-muted">
                 <Preview tipo={p.tipo} url={urlPublica(p.storage_path)} />
               </div>
