@@ -4,7 +4,6 @@ import Login from "@/pages/Login"
 import Resumen from "@/pages/Resumen"
 import Caja from "@/pages/Caja"
 import Bookings from "@/pages/Bookings"
-import Front from "@/pages/Front"
 import Productos from "@/pages/Productos"
 import Servicios from "@/pages/Servicios"
 import CRM from "@/pages/CRM"
@@ -24,7 +23,6 @@ function Gate() {
         <Route path="/" element={<Navigate to="/resumen" replace />} />
         <Route path="/resumen" element={<Resumen />} />
         <Route path="/caja" element={<Caja />} />
-        <Route path="/front" element={<Front />} />
         <Route path="/productos" element={<Productos />} />
         <Route path="/servicios" element={<Servicios />} />
         <Route path="/reservas" element={<Bookings />} />

@@ -8,7 +8,6 @@ import {
   LogOut,
   Menu,
   MessagesSquare,
-  PenLine,
   ShoppingBag,
   Sparkles,
   Wallet,
@@ -38,7 +37,6 @@ const GRUPOS = [
   {
     titulo: "Contenido",
     items: [
-      { to: "/front", label: "Front", icon: PenLine },
       { to: "/servicios", label: "Servicios", icon: Sparkles },
       { to: "/productos", label: "Productos", icon: ShoppingBag },
       { to: "/multimedia", label: "Multimedia", icon: Images },
