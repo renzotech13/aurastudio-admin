@@ -7,6 +7,8 @@ import { actualizarEstadoCita as actualizarEstadoCitaBot, BotApiError } from "@/
 import { fechaConDiaSemana, horaLima, numero } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { CITA_ESTADO_LABEL, type Cita, type CitaEstado } from "@/lib/types"
+import { useEquipo } from "@/lib/equipo"
+import FichaClienteDialog from "@/pages/Reservas/FichaClienteDialog"
 import { Cifra } from "@/components/charts"
 import { Segmented, type OpcionSegmentada } from "@/components/Segmented"
 import { PageHeader } from "@/components/PageHeader"
@@ -21,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,6 +79,16 @@ export default function Bookings() {
   const [citas, setCitas] = useState<CitaConDetalle[]>([])
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState<FiltroEstado>("all")
+  const [sedeId, setSedeId] = useState<string>("all")
+  const [profesionalId, setProfesionalId] = useState<string>("all")
+  const [fichaCliente, setFichaCliente] = useState<{ clienteId: string; citaId: string } | null>(null)
+  const { sedes, profesionales, nombreSede, nombreProfesional } = useEquipo()
+
+  // Al cambiar de local, la profesional elegida puede no pertenecer a él: los
+  // equipos no se cruzan entre sedes y el filtro quedaría sin resultados sin
+  // que se entienda por qué.
+  const profesionalesDeSede =
+    sedeId === "all" ? profesionales : profesionales.filter((p) => p.sede_id === sedeId)
 
   useEffect(() => {
     let active = true
@@ -127,8 +140,14 @@ export default function Bookings() {
   }
 
   const filtradas = useMemo(
-    () => (filtro === "all" ? citas : citas.filter((c) => c.estado === filtro)),
-    [citas, filtro],
+    () =>
+      citas.filter((c) => {
+        if (filtro !== "all" && c.estado !== filtro) return false
+        if (sedeId !== "all" && c.sede_id !== sedeId) return false
+        if (profesionalId !== "all" && c.profesional_id !== profesionalId) return false
+        return true
+      }),
+    [citas, filtro, sedeId, profesionalId],
   )
 
   const conteo = useMemo(() => {
@@ -198,11 +217,49 @@ export default function Bookings() {
           onChange={setFiltro}
           etiquetaAria="Filtrar reservas por estado"
         />
-        <span className="text-[11.5px] text-muted-foreground">
-          {loading
-            ? "—"
-            : `${numero(filtradas.length)} de ${numero(citas.length)} en la lista`}
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <Select
+            value={sedeId}
+            onValueChange={(v) => {
+              // El Select puede emitir null al deseleccionar; "all" es el
+              // equivalente aquí (sin filtro), no un valor vacío.
+              setSedeId(v ?? "all")
+              setProfesionalId("all")
+            }}
+          >
+            <SelectTrigger className="h-9 w-[190px] rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los locales</SelectItem>
+              {sedes.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={profesionalId} onValueChange={(v) => setProfesionalId(v ?? "all")}>
+            <SelectTrigger className="h-9 w-[190px] rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las profesionales</SelectItem>
+              {profesionalesDeSede.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <span className="text-[11.5px] text-muted-foreground">
+            {loading
+              ? "—"
+              : `${numero(filtradas.length)} de ${numero(citas.length)} en la lista`}
+          </span>
+        </div>
       </div>
 
       <Card crest>
@@ -228,6 +285,8 @@ export default function Bookings() {
                     <TableHead>Fecha y hora</TableHead>
                     <TableHead>Clienta</TableHead>
                     <TableHead>Servicio</TableHead>
+                    <TableHead>Local</TableHead>
+                    <TableHead>Profesional</TableHead>
                     <TableHead>Origen</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
@@ -235,7 +294,14 @@ export default function Bookings() {
                 </TableHeader>
                 <TableBody>
                   {filtradas.map((c) => (
-                    <TableRow key={c.id} className={cn(c.estado === "cancelada" && "opacity-55")}>
+                    <TableRow
+                      key={c.id}
+                      onClick={() => setFichaCliente({ clienteId: c.cliente_id, citaId: c.id })}
+                      className={cn(
+                        "cursor-pointer",
+                        c.estado === "cancelada" && "opacity-55",
+                      )}
+                    >
                       <TableCell className="whitespace-nowrap">
                         <span className="capitalize">{fechaConDiaSemana(c.inicio_utc)}</span>
                         <span className="tnum ml-2 text-muted-foreground">{horaLima(c.inicio_utc)}</span>
@@ -246,6 +312,7 @@ export default function Bookings() {
                           href={`https://wa.me/${c.clientes.telefono}`}
                           target="_blank"
                           rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
                           className="tnum text-[11.5px] text-muted-foreground transition-colors hover:text-gold-deep dark:hover:text-gold"
                         >
                           {c.clientes.telefono}
@@ -257,13 +324,18 @@ export default function Bookings() {
                           <div className="mt-0.5 text-[11.5px] text-muted-foreground">{c.notas}</div>
                         ) : null}
                       </TableCell>
+                      <TableCell className="text-muted-foreground">{nombreSede(c.sede_id)}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {nombreProfesional(c.profesional_id)}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {c.creada_por === "bot" ? "WhatsApp" : "Web / manual"}
                       </TableCell>
                       <TableCell>
                         <EstadoPill estado={c.estado} />
                       </TableCell>
-                      <TableCell className="text-right">
+                      {/* Cambiar estado no debe abrir la ficha: el clic muere acá. */}
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger
                             render={
@@ -294,6 +366,15 @@ export default function Bookings() {
           )}
         </CardContent>
       </Card>
+
+      <FichaClienteDialog
+        clienteId={fichaCliente?.clienteId ?? null}
+        citaDestacadaId={fichaCliente?.citaId ?? null}
+        open={!!fichaCliente}
+        onOpenChange={(abierto) => {
+          if (!abierto) setFichaCliente(null)
+        }}
+      />
     </div>
   )
 }

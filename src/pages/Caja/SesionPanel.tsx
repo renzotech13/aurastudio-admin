@@ -3,6 +3,8 @@ import { toast } from "sonner"
 import { AlertTriangle, Check, Lock, Unlock } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useEquipo } from "@/lib/equipo"
 import { useAuth } from "@/lib/auth"
 import { fechaHora, money } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -36,6 +38,11 @@ export function SesionPanel({
   const { session } = useAuth()
   const [abriendo, setAbriendo] = useState(false)
   const [montoInicial, setMontoInicial] = useState("")
+  const [sedeId, setSedeId] = useState<string>("")
+  const { sedes } = useEquipo()
+  const sedesActivas = sedes.filter((s) => s.activa)
+  // Con un solo local no hay nada que preguntar.
+  const sedeElegida = sedeId || (sedesActivas.length === 1 ? sedesActivas[0].id : "")
   const [cerrando, setCerrando] = useState(false)
 
   async function abrirCaja() {
@@ -44,6 +51,10 @@ export function SesionPanel({
     const { error } = await supabase.from("caja_sesiones").insert({
       abierta_por: session.user.id,
       monto_inicial: inicial,
+      // Sin sede, el índice único de la 0014 la trata como "sin-sede" y sigue
+      // impidiendo abrir dos a la vez; además la caja no se podría filtrar por
+      // local. Por eso el botón exige elegirla cuando hay más de una.
+      sede_id: sedeElegida || null,
     })
 
     if (error) {
@@ -92,7 +103,24 @@ export function SesionPanel({
                   autoFocus
                 />
               </div>
-              <Button variant="gold" onClick={abrirCaja}>
+              {sedesActivas.length > 1 ? (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Local</Label>
+                  <Select value={sedeId} onValueChange={(v) => setSedeId(v ?? "")}>
+                    <SelectTrigger className="h-10 w-[200px] rounded-xl">
+                      <SelectValue placeholder="Elegir local" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sedesActivas.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+              <Button variant="gold" onClick={abrirCaja} disabled={!sedeElegida}>
                 Abrir turno
               </Button>
               <Button variant="ghost" onClick={() => setAbriendo(false)}>

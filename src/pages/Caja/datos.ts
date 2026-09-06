@@ -18,9 +18,20 @@ import { rangoAnterior } from "./rango"
 export type MovimientoConDetalle = MovimientoCaja & {
   services: { name: string } | null
   clientes: { nombre: string | null; telefono: string } | null
+  /**
+   * El local sale de la sesión de caja, no del movimiento: el dinero se
+   * atribuye a la caja donde se cobró. Va en null si el movimiento no cuelga
+   * de ninguna sesión (`sesion_id` es nullable).
+   */
+  caja_sesiones: { sede_id: string | null } | null
 }
 
-const SELECT_MOVIMIENTO = "*, services(name), clientes(nombre, telefono)"
+const SELECT_MOVIMIENTO = "*, services(name), clientes(nombre, telefono), caja_sesiones(sede_id)"
+
+/** El local de un movimiento, o null si no cuelga de ninguna sesión. */
+export function sedeDeMovimiento(m: MovimientoConDetalle): string | null {
+  return m.caja_sesiones?.sede_id ?? null
+}
 
 export type Totales = {
   ingresos: number
@@ -86,6 +97,24 @@ export function porMetodo(movs: MovimientoCaja[]) {
   )
 }
 
+/**
+ * Ingresos por profesional. Lo cobrado antes de la migración 0014 no tiene a
+ * quién acreditarse, así que cae en "Sin asignar" en vez de repartirse o
+ * desaparecer — el total del desglose sigue cuadrando con el de ingresos.
+ */
+export function porProfesional(movs: MovimientoCaja[], nombreDe: (id: string | null) => string) {
+  const mapa = new Map<string, { monto: number; n: number }>()
+  for (const m of movs) {
+    if (m.anulado || m.tipo !== "ingreso") continue
+    const nombre = m.profesional_id ? nombreDe(m.profesional_id) : "Sin asignar"
+    const prev = mapa.get(nombre) ?? { monto: 0, n: 0 }
+    mapa.set(nombre, { monto: prev.monto + Number(m.monto), n: prev.n + 1 })
+  }
+  return [...mapa.entries()]
+    .map(([nombre, v]) => ({ nombre, ...v }))
+    .sort((a, b) => b.monto - a.monto)
+}
+
 export function porCategoria(movs: MovimientoCaja[], tipo: "ingreso" | "egreso") {
   const mapa = new Map<CategoriaMovimiento, { monto: number; n: number }>()
   for (const m of movs) {
@@ -149,7 +178,11 @@ export function efectivoDe(movs: MovimientoCaja[]) {
 export function useCaja(rango: Rango) {
   const [movimientos, setMovimientos] = useState<MovimientoConDetalle[]>([])
   const [previos, setPrevios] = useState<MovimientoCaja[]>([])
-  const [sesion, setSesion] = useState<CajaSesionResumen | null>(null)
+  // Desde la migración 0014 puede haber una caja abierta POR SEDE, así que
+  // esto es una lista. Antes era `maybeSingle()`, que con dos turnos abiertos
+  // a la vez no devuelve la primera: lanza error y la pantalla entera queda
+  // sin datos.
+  const [abiertas, setAbiertas] = useState<CajaSesionResumen[]>([])
   const [sesiones, setSesiones] = useState<CajaSesionResumen[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -171,7 +204,7 @@ export function useCaja(rango: Rango) {
         .select("tipo, monto, metodo, categoria, anulado, ocurrido_at")
         .gte("ocurrido_at", anterior.desde)
         .lt("ocurrido_at", anterior.hasta),
-      supabase.from("caja_sesiones_resumen").select("*").eq("estado", "abierta").maybeSingle(),
+      supabase.from("caja_sesiones_resumen").select("*").eq("estado", "abierta"),
       supabase
         .from("caja_sesiones_resumen")
         .select("*")
@@ -184,7 +217,7 @@ export function useCaja(rango: Rango) {
 
     setMovimientos((actual.data ?? []) as MovimientoConDetalle[])
     setPrevios((previo.data ?? []) as MovimientoCaja[])
-    setSesion((abierta.data ?? null) as CajaSesionResumen | null)
+    setAbiertas((abierta.data ?? []) as CajaSesionResumen[])
     setSesiones((historial.data ?? []) as CajaSesionResumen[])
     setCargando(false)
   }, [rango])
@@ -203,7 +236,7 @@ export function useCaja(rango: Rango) {
     vivos,
     totales,
     totalesPrevios,
-    sesion,
+    abiertas,
     sesiones,
     cargando,
     error,

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { supabase } from "@/lib/supabase"
+import { useEquipo } from "@/lib/equipo"
 import { useAuth } from "@/lib/auth"
 import { money, precioNumerico } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -55,6 +56,8 @@ export function MovimientoDialog({
   const [concepto, setConcepto] = useState("")
   const [monto, setMonto] = useState("")
   const [metodo, setMetodo] = useState<MetodoPago>("efectivo")
+  const [profesionalId, setProfesionalId] = useState<string>("")
+  const { profesionales } = useEquipo()
   const [servicioId, setServicioId] = useState<string>("")
   const [nota, setNota] = useState("")
   const [servicios, setServicios] = useState<Service[]>([])
@@ -118,6 +121,9 @@ export function MovimientoDialog({
       monto: montoNum,
       metodo,
       servicio_id: tipo === "ingreso" && servicioId ? servicioId : null,
+      // Solo tiene sentido acreditar un ingreso: un egreso (alquiler, insumos)
+      // no es de nadie en particular.
+      profesional_id: tipo === "ingreso" && profesionalId ? profesionalId : null,
       registrado_por: session.user.id,
     })
 
@@ -225,6 +231,29 @@ export function MovimientoDialog({
               </Select>
               <p className="text-[11px] text-muted-foreground">
                 Ligarlo a la carta alimenta el ranking de servicios más vendidos.
+              </p>
+            </div>
+          ) : null}
+
+          {tipo === "ingreso" ? (
+            <div className="space-y-1.5">
+              <Label>Profesional (opcional)</Label>
+              <Select value={profesionalId} onValueChange={(v) => setProfesionalId(v ?? "")}>
+                <SelectTrigger className="h-10 w-full rounded-xl">
+                  <SelectValue placeholder="Sin asignar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {profesionales
+                    .filter((p) => p.activa)
+                    .map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nombre}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Es lo que permite filtrar la caja por profesional y ver cuánto trae cada una.
               </p>
             </div>
           ) : null}

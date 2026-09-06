@@ -51,26 +51,62 @@ import {
   porDia,
   porHora,
   porMetodo,
+  porProfesional,
+  sedeDeMovimiento,
   topServicios,
   useCaja,
 } from "./datos"
 import { resolverRango, variacion, type RangoId } from "./rango"
+import { useEquipo } from "@/lib/equipo"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function Caja() {
   const { session } = useAuth()
   const [rangoId, setRangoId] = useState<RangoId>("hoy")
   const rango = useMemo(() => resolverRango(rangoId), [rangoId])
-  const { movimientos, vivos, totales, totalesPrevios, sesion, sesiones, cargando, error, recargar } =
+  const { movimientos, vivos, totales, totalesPrevios, abiertas, sesiones, cargando, error, recargar } =
     useCaja(rango)
 
   const [dialogo, setDialogo] = useState<MovimientoTipo | null>(null)
+  const [sedeId, setSedeId] = useState<string>("all")
+  const [profesionalId, setProfesionalId] = useState<string>("all")
+  const { sedes, profesionales, nombreProfesional } = useEquipo()
 
-  const serie = useMemo(() => porDia(vivos, rango.dias), [vivos, rango.dias])
-  const metodos = useMemo(() => porMetodo(vivos), [vivos])
-  const egresosCat = useMemo(() => porCategoria(vivos, "egreso"), [vivos])
-  const servicios = useMemo(() => topServicios(vivos), [vivos])
-  const horas = useMemo(() => porHora(vivos), [vivos])
-  const efectivo = useMemo(() => efectivoDe(vivos), [vivos])
+  // Con el filtro en un local concreto se muestra SU caja; sin filtro, la
+  // única abierta (o ninguna, si hay varias y no se dijo cuál).
+  const sesion =
+    sedeId === "all"
+      ? abiertas.length === 1
+        ? abiertas[0]
+        : null
+      : (abiertas.find((s) => s.sede_id === sedeId) ?? null)
+
+  const profesionalesDeSede =
+    sedeId === "all" ? profesionales : profesionales.filter((p) => p.sede_id === sedeId)
+
+  // Local y profesional acotan TODO lo de abajo (gráficos, cifras y tabla),
+  // igual que el rango de fechas. Se aplica sobre `vivos` (lo no anulado) para
+  // que cada agregador reciba ya lo filtrado y no tenga que saber del filtro.
+  const enFoco = useMemo(
+    () =>
+      vivos.filter((m) => {
+        if (sedeId !== "all" && sedeDeMovimiento(m) !== sedeId) return false
+        if (profesionalId !== "all" && m.profesional_id !== profesionalId) return false
+        return true
+      }),
+    [vivos, sedeId, profesionalId],
+  )
+
+  const serie = useMemo(() => porDia(enFoco, rango.dias), [enFoco, rango.dias])
+  const metodos = useMemo(() => porMetodo(enFoco), [enFoco])
+  const egresosCat = useMemo(() => porCategoria(enFoco, "egreso"), [enFoco])
+  const servicios = useMemo(() => topServicios(enFoco), [enFoco])
+  const horas = useMemo(() => porHora(enFoco), [enFoco])
+  const efectivo = useMemo(() => efectivoDe(enFoco), [enFoco])
+  const equipo = useMemo(
+    () => porProfesional(enFoco, nombreProfesional),
+    [enFoco, nombreProfesional],
+  )
 
   const SERIES_FLUJO = [
     { nombre: "Ingresos", color: serieColor(0) },
@@ -121,6 +157,41 @@ export default function Caja() {
       {/* Los filtros van arriba y delimitan todo lo de abajo. */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <SelectorRango valor={rangoId} onChange={setRangoId} />
+        <div className="flex flex-wrap items-center gap-3">
+          <Select
+            value={sedeId}
+            onValueChange={(v) => {
+              setSedeId(v ?? "all")
+              setProfesionalId("all")
+            }}
+          >
+            <SelectTrigger className="h-9 w-[180px] rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los locales</SelectItem>
+              {sedes.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={profesionalId} onValueChange={(v) => setProfesionalId(v ?? "all")}>
+            <SelectTrigger className="h-9 w-[180px] rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las profesionales</SelectItem>
+              {profesionalesDeSede.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <span className="text-[11.5px] text-muted-foreground">
           {rango.dias.length === 1
             ? fechaCorta(rango.desde)
@@ -281,6 +352,31 @@ export default function Caja() {
                 }))}
                 formato={money}
                 color={serieColor(0)}
+              />
+            </ChartFrame>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent>
+            <ChartFrame
+              titulo="Recaudación por profesional"
+              descripcion="Lo cobrado antes de separar por profesional aparece como «Sin asignar»."
+              tabla={
+                <TablaDatos
+                  columnas={["Profesional", "Cobros", "Monto"]}
+                  filas={equipo.map((p) => [p.nombre, p.n, money(p.monto)])}
+                />
+              }
+            >
+              <Ranking
+                filas={equipo.map((p) => ({
+                  etiqueta: p.nombre,
+                  valor: p.monto,
+                  detalle: `${p.n}×`,
+                }))}
+                formato={money}
+                color={serieColor(2)}
               />
             </ChartFrame>
           </CardContent>

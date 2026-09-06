@@ -217,10 +217,41 @@ export const COMPROBANTE_ESTADO_LABEL: Record<ComprobanteEstado, string> = {
   en_revision: "Comprobante en revisión",
 }
 
+/** Local de Aura. Ver migración 0014. */
+export type Sede = {
+  id: string
+  nombre: string
+  direccion: string
+  yape_numero: string | null
+  yape_titular: string | null
+  activa: boolean
+  sort_order: number
+}
+
+/**
+ * Quien atiende. OJO: no es lo mismo que `profiles`, que son las cuentas que
+ * entran al panel — una profesional puede existir en la agenda sin tener
+ * cuenta todavía (`user_id` en null).
+ */
+export type Profesional = {
+  id: string
+  slug: string
+  nombre: string
+  sede_id: string
+  rol: string
+  foto_url: string | null
+  user_id: string | null
+  activa: boolean
+  sort_order: number
+}
+
 export type Cita = {
   id: string
   cliente_id: string
   servicio_id: string
+  /** Null en las citas anteriores a la migración 0014. */
+  sede_id: string | null
+  profesional_id: string | null
   inicio_utc: string
   fin_utc: string
   estado: CitaEstado
@@ -387,6 +418,8 @@ export type CajaSesion = {
   abierta_por: string
   apertura_at: string
   monto_inicial: number
+  /** Local del turno. Null en los turnos anteriores a la migración 0014. */
+  sede_id: string | null
   apertura_nota: string | null
   cerrada_por: string | null
   cierre_at: string | null
@@ -420,6 +453,8 @@ export type MovimientoCaja = {
   cliente_id: string | null
   servicio_id: string | null
   producto_id: string | null
+  /** A quién se le acredita el cobro. Null en lo registrado antes de la 0014. */
+  profesional_id: string | null
   anulado: boolean
   anulado_por: string | null
   anulado_at: string | null
