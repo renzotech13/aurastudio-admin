@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
+import { CalendarCheck2, CalendarX2, ChevronDown, CircleCheck, UserX } from "lucide-react"
+
 import { supabase } from "@/lib/supabase"
 import { actualizarEstadoCita as actualizarEstadoCitaBot, BotApiError } from "@/lib/botApi"
+import { fechaConDiaSemana, horaLima, numero } from "@/lib/format"
+import { cn } from "@/lib/utils"
 import { CITA_ESTADO_LABEL, type Cita, type CitaEstado } from "@/lib/types"
-import { Badge } from "@/components/ui/badge"
+import { Cifra } from "@/components/charts"
+import { Segmented, type OpcionSegmentada } from "@/components/Segmented"
+import { PageHeader } from "@/components/PageHeader"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Table,
   TableBody,
@@ -20,8 +27,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ChevronDown } from "lucide-react"
-import { PageHeader } from "@/components/PageHeader"
 
 /** Cita + los datos del cliente y servicio que trae el join de Supabase. */
 type CitaConDetalle = Cita & {
@@ -29,22 +34,17 @@ type CitaConDetalle = Cita & {
   services: { name: string }
 }
 
-const ESTADO_ORDER: CitaEstado[] = ["confirmada", "completada", "no_asistio", "cancelada"]
-const FILTROS: { key: "all" | CitaEstado; label: string }[] = [
-  { key: "all", label: "Todas" },
-  { key: "confirmada", label: "Confirmadas" },
-  { key: "completada", label: "Completadas" },
-  { key: "no_asistio", label: "No asistió" },
-  { key: "cancelada", label: "Canceladas" },
-]
+type FiltroEstado = "all" | CitaEstado
 
-function formatDateTime(iso: string) {
-  const fecha = new Date(iso)
-  return {
-    fecha: fecha.toLocaleDateString("es-PE", { weekday: "short", day: "numeric", month: "short" }),
-    hora: fecha.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }),
-  }
-}
+const ESTADO_ORDER: CitaEstado[] = ["confirmada", "completada", "no_asistio", "cancelada"]
+
+const FILTROS: readonly OpcionSegmentada<FiltroEstado>[] = [
+  { id: "all", label: "Todas" },
+  { id: "confirmada", label: "Confirmadas" },
+  { id: "completada", label: "Completadas" },
+  { id: "no_asistio", label: "No asistió" },
+  { id: "cancelada", label: "Canceladas" },
+]
 
 // Los tokens de color existentes quedaron nombrados por el enum viejo de
 // 'bookings' (pending/confirmed/cancelled/completed) — se reutilizan por
@@ -56,26 +56,26 @@ const ESTADO_COLOR_TOKEN: Record<CitaEstado, string> = {
   no_asistio: "pending",
 }
 
-function StatusBadge({ estado }: { estado: CitaEstado }) {
+/** Píldora de estado, con el mismo lenguaje que los estados de Caja. */
+function EstadoPill({ estado }: { estado: CitaEstado }) {
   const token = ESTADO_COLOR_TOKEN[estado]
   return (
-    <Badge
-      variant="outline"
-      className="border-transparent"
+    <span
+      className="inline-block rounded-full px-2.5 py-1 text-[10.5px] tracking-[0.08em] whitespace-nowrap uppercase"
       style={{
         color: `var(--status-${token})`,
         backgroundColor: `var(--status-${token}-bg)`,
       }}
     >
       {CITA_ESTADO_LABEL[estado]}
-    </Badge>
+    </span>
   )
 }
 
 export default function Bookings() {
   const [citas, setCitas] = useState<CitaConDetalle[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<"all" | CitaEstado>("all")
+  const [filtro, setFiltro] = useState<FiltroEstado>("all")
 
   useEffect(() => {
     let active = true
@@ -126,94 +126,153 @@ export default function Bookings() {
     }
   }
 
-  const filtered = useMemo(
-    () => (filter === "all" ? citas : citas.filter((c) => c.estado === filter)),
-    [citas, filter],
+  const filtradas = useMemo(
+    () => (filtro === "all" ? citas : citas.filter((c) => c.estado === filtro)),
+    [citas, filtro],
   )
 
-  const confirmadasCount = citas.filter((c) => c.estado === "confirmada").length
+  const conteo = useMemo(() => {
+    const base: Record<CitaEstado, number> = {
+      confirmada: 0,
+      completada: 0,
+      no_asistio: 0,
+      cancelada: 0,
+    }
+    for (const c of citas) base[c.estado] += 1
+    return base
+  }, [citas])
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-8">
+    <div className="mx-auto w-full max-w-[1400px] px-5 py-6 sm:px-8 sm:py-8">
       <PageHeader
         eyebrow="Operación"
         titulo="Reservas"
         descripcion={
           loading
             ? "Cargando…"
-            : `${confirmadasCount} cita${confirmadasCount === 1 ? "" : "s"} confirmada${confirmadasCount === 1 ? "" : "s"}, de WhatsApp y la web.`
+            : `${numero(conteo.confirmada)} cita${conteo.confirmada === 1 ? "" : "s"} confirmada${
+                conteo.confirmada === 1 ? "" : "s"
+              }, de WhatsApp y la web.`
         }
       />
 
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)} className="mb-4">
-        <TabsList>
-          {FILTROS.map((f) => (
-            <TabsTrigger key={f.key} value={f.key}>
-              {f.label}
-            </TabsTrigger>
+      {/* Las cifras cuentan SIEMPRE sobre el total, no sobre el filtro: son
+          el estado del negocio, no de la vista. */}
+      {loading ? (
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-[124px] rounded-2xl" />
           ))}
-        </TabsList>
-      </Tabs>
+        </div>
+      ) : (
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Cifra
+            destacada
+            etiqueta="Confirmadas"
+            valor={numero(conteo.confirmada)}
+            icono={<CalendarCheck2 className="size-4 text-status-confirmed" />}
+          />
+          <Cifra
+            etiqueta="Completadas"
+            valor={numero(conteo.completada)}
+            icono={<CircleCheck className="size-4 text-status-completed" />}
+          />
+          <Cifra
+            etiqueta="No asistió"
+            valor={numero(conteo.no_asistio)}
+            icono={<UserX className="size-4 text-status-pending" />}
+          />
+          <Cifra
+            etiqueta="Canceladas"
+            valor={numero(conteo.cancelada)}
+            icono={<CalendarX2 className="size-4 text-status-cancelled" />}
+          />
+        </div>
+      )}
 
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-        {loading ? (
-          <div className="flex flex-col gap-3 p-5">
-            <Skeleton className="h-9 w-full" />
-            <Skeleton className="h-9 w-full" />
-            <Skeleton className="h-9 w-full" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="px-6 py-16 text-center text-sm text-muted-foreground">
-            No hay reservas en esta categoría todavía.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha y hora</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Servicio</TableHead>
-                  <TableHead>Origen</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((c) => {
-                  const { fecha, hora } = formatDateTime(c.inicio_utc)
-                  return (
-                    <TableRow key={c.id}>
-                      <TableCell className="whitespace-nowrap font-medium capitalize">
-                        {fecha} · {hora}
+      {/* El filtro va arriba de la tabla y solo la afecta a ella. */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <Segmented
+          opciones={FILTROS}
+          valor={filtro}
+          onChange={setFiltro}
+          etiquetaAria="Filtrar reservas por estado"
+        />
+        <span className="text-[11.5px] text-muted-foreground">
+          {loading
+            ? "—"
+            : `${numero(filtradas.length)} de ${numero(citas.length)} en la lista`}
+        </span>
+      </div>
+
+      <Card crest>
+        <CardHeader>
+          <CardTitle>Agenda</CardTitle>
+        </CardHeader>
+        <CardContent className="px-0">
+          {loading ? (
+            <div className="space-y-2 px-5">
+              {[0, 1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-10 rounded-xl" />
+              ))}
+            </div>
+          ) : filtradas.length === 0 ? (
+            <p className="px-5 text-[13px] text-muted-foreground">
+              No hay reservas en esta categoría todavía.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha y hora</TableHead>
+                    <TableHead>Clienta</TableHead>
+                    <TableHead>Servicio</TableHead>
+                    <TableHead>Origen</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtradas.map((c) => (
+                    <TableRow key={c.id} className={cn(c.estado === "cancelada" && "opacity-55")}>
+                      <TableCell className="whitespace-nowrap">
+                        <span className="capitalize">{fechaConDiaSemana(c.inicio_utc)}</span>
+                        <span className="tnum ml-2 text-muted-foreground">{horaLima(c.inicio_utc)}</span>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">{c.clientes.nombre?.trim() || "Sin nombre"}</div>
+                        <div>{c.clientes.nombre?.trim() || "Sin nombre"}</div>
                         <a
                           href={`https://wa.me/${c.clientes.telefono}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-xs text-muted-foreground hover:text-primary"
+                          className="tnum text-[11.5px] text-muted-foreground transition-colors hover:text-gold-deep dark:hover:text-gold"
                         >
                           {c.clientes.telefono}
                         </a>
                       </TableCell>
-                      <TableCell className="max-w-56">
-                        <span className="text-sm">{c.services.name}</span>
-                        {c.notas && <div className="mt-0.5 text-xs text-muted-foreground">{c.notas}</div>}
+                      <TableCell className="max-w-[280px]">
+                        <span>{c.services.name}</span>
+                        {c.notas ? (
+                          <div className="mt-0.5 text-[11.5px] text-muted-foreground">{c.notas}</div>
+                        ) : null}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-muted-foreground">
                         {c.creada_por === "bot" ? "WhatsApp" : "Web / manual"}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge estado={c.estado} />
+                        <EstadoPill estado={c.estado} />
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
-                          <DropdownMenuTrigger className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent">
-                            Cambiar estado
-                            <ChevronDown className="size-3.5" />
-                          </DropdownMenuTrigger>
+                          <DropdownMenuTrigger
+                            render={
+                              <Button variant="outline" size="sm">
+                                Cambiar estado
+                                <ChevronDown />
+                              </Button>
+                            }
+                          />
                           <DropdownMenuContent align="end">
                             {ESTADO_ORDER.map((estado) => (
                               <DropdownMenuItem
@@ -228,13 +287,13 @@ export default function Bookings() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

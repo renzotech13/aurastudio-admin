@@ -73,6 +73,17 @@ export function fechaCorta(iso: string | Date): string {
   }).format(d)
 }
 
+/** "Dom, 30 ago" — con día de la semana, para pantallas de agenda. */
+export function fechaConDiaSemana(iso: string | Date): string {
+  const d = typeof iso === "string" ? new Date(iso) : iso
+  return new Intl.DateTimeFormat("es-PE", {
+    timeZone: "America/Lima",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(d)
+}
+
 export function fechaHora(iso: string | Date): string {
   return `${fechaCorta(iso)} · ${horaLima(iso)}`
 }
