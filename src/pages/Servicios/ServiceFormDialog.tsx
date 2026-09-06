@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CategoryIcon } from "@/lib/categoryIcons"
 import {
   Dialog,
   DialogContent,
@@ -129,12 +130,18 @@ export default function ServiceFormDialog({
               <Label>Categoría</Label>
               <Select value={categoryId} onValueChange={(v) => setCategoryId(v as string)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Elegir categoría" />
+                  <SelectValue placeholder="Elegir categoría">
+                    {(v) => categories.find((c) => c.id === v)?.title ?? "Elegir categoría"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      {c.icon} {c.title}
+                      {/* c.icon dejó de ser un emoji en la migración 0013: ahora
+                          es el nombre del ícono, así que se dibuja, no se
+                          imprime — antes se leía "Scissors Cabello". */}
+                      <CategoryIcon name={c.icon} className="size-4 text-gold-deep dark:text-gold" />
+                      {c.title}
                     </SelectItem>
                   ))}
                 </SelectContent>

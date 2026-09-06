@@ -10,6 +10,7 @@ import {
   type CategoriaMovimiento,
   type MetodoPago,
   type MovimientoCaja,
+  type MovimientoTipo,
 } from "@/lib/types"
 import type { Rango } from "./rango"
 import { rangoAnterior } from "./rango"
@@ -23,14 +24,36 @@ export type MovimientoConDetalle = MovimientoCaja & {
    * atribuye a la caja donde se cobró. Va en null si el movimiento no cuelga
    * de ninguna sesión (`sesion_id` es nullable).
    */
-  caja_sesiones: { sede_id: string | null } | null
+  caja_sesiones: { sede_id: string | null } | { sede_id: string | null }[] | null
 }
 
 const SELECT_MOVIMIENTO = "*, services(name), clientes(nombre, telefono), caja_sesiones(sede_id)"
 
-/** El local de un movimiento, o null si no cuelga de ninguna sesión. */
-export function sedeDeMovimiento(m: MovimientoConDetalle): string | null {
-  return m.caja_sesiones?.sede_id ?? null
+/** Lo mínimo que hace falta para filtrar y totalizar; lo cumple tanto el
+ *  movimiento completo como la fila recortada del periodo anterior. */
+export type MovimientoFiltrable = {
+  tipo: MovimientoTipo
+  monto: number
+  metodo: MetodoPago
+  categoria: CategoriaMovimiento
+  anulado: boolean
+  ocurrido_at: string
+  profesional_id: string | null
+  caja_sesiones: { sede_id: string | null } | { sede_id: string | null }[] | null
+}
+
+/**
+ * El local de un movimiento, o null si no cuelga de ninguna sesión.
+ *
+ * Acepta objeto o arreglo a propósito: PostgREST devuelve un objeto para una
+ * relación de muchos-a-uno, pero los tipos generados la declaran como arreglo.
+ * Asumir una sola forma haría que el filtro por sede no coincidiera nunca y
+ * la pantalla se viera vacía sin ningún error.
+ */
+export function sedeDeMovimiento(m: MovimientoFiltrable): string | null {
+  const rel = m.caja_sesiones
+  if (!rel) return null
+  return (Array.isArray(rel) ? rel[0]?.sede_id : rel.sede_id) ?? null
 }
 
 export type Totales = {
@@ -42,7 +65,7 @@ export type Totales = {
   ventas: number
 }
 
-function totalizar(movs: MovimientoCaja[]): Totales {
+export function totalizar(movs: Pick<MovimientoCaja, "tipo" | "monto" | "categoria" | "anulado">[]): Totales {
   let ingresos = 0
   let egresos = 0
   let ventasMonto = 0
@@ -177,7 +200,7 @@ export function efectivoDe(movs: MovimientoCaja[]) {
 
 export function useCaja(rango: Rango) {
   const [movimientos, setMovimientos] = useState<MovimientoConDetalle[]>([])
-  const [previos, setPrevios] = useState<MovimientoCaja[]>([])
+  const [previos, setPrevios] = useState<MovimientoFiltrable[]>([])
   // Desde la migración 0014 puede haber una caja abierta POR SEDE, así que
   // esto es una lista. Antes era `maybeSingle()`, que con dos turnos abiertos
   // a la vez no devuelve la primera: lanza error y la pantalla entera queda
@@ -201,7 +224,7 @@ export function useCaja(rango: Rango) {
         .order("ocurrido_at", { ascending: false }),
       supabase
         .from("movimientos_caja")
-        .select("tipo, monto, metodo, categoria, anulado, ocurrido_at")
+        .select("tipo, monto, metodo, categoria, anulado, ocurrido_at, profesional_id, caja_sesiones(sede_id)")
         .gte("ocurrido_at", anterior.desde)
         .lt("ocurrido_at", anterior.hasta),
       supabase.from("caja_sesiones_resumen").select("*").eq("estado", "abierta"),
@@ -216,7 +239,7 @@ export function useCaja(rango: Rango) {
     if (fallo) setError(fallo.message)
 
     setMovimientos((actual.data ?? []) as MovimientoConDetalle[])
-    setPrevios((previo.data ?? []) as MovimientoCaja[])
+    setPrevios((previo.data ?? []) as unknown as MovimientoFiltrable[])
     setAbiertas((abierta.data ?? []) as CajaSesionResumen[])
     setSesiones((historial.data ?? []) as CajaSesionResumen[])
     setCargando(false)
@@ -229,13 +252,15 @@ export function useCaja(rango: Rango) {
   const vivos = useMemo(() => movimientos.filter((m) => !m.anulado), [movimientos])
 
   const totales = useMemo(() => totalizar(vivos), [vivos])
-  const totalesPrevios = useMemo(() => totalizar(previos.filter((m) => !m.anulado)), [previos])
+  const previosVivos = useMemo(() => previos.filter((m) => !m.anulado), [previos])
+  const totalesPrevios = useMemo(() => totalizar(previosVivos), [previosVivos])
 
   return {
     movimientos,
     vivos,
     totales,
     totalesPrevios,
+    previosVivos,
     abiertas,
     sesiones,
     cargando,

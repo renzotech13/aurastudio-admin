@@ -228,7 +228,9 @@ export default function Bookings() {
             }}
           >
             <SelectTrigger className="h-9 w-[190px] rounded-xl">
-              <SelectValue />
+              {/* Sin esta función, SelectValue pinta el valor crudo: se veía
+                  literalmente "all", y en el de profesional se vería el uuid. */}
+              <SelectValue>{(v) => sedes.find((x) => x.id === v)?.nombre ?? "Todos los locales"}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los locales</SelectItem>
@@ -242,7 +244,9 @@ export default function Bookings() {
 
           <Select value={profesionalId} onValueChange={(v) => setProfesionalId(v ?? "all")}>
             <SelectTrigger className="h-9 w-[190px] rounded-xl">
-              <SelectValue />
+              <SelectValue>
+                {(v) => profesionales.find((x) => x.id === v)?.nombre ?? "Todas las profesionales"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas las profesionales</SelectItem>

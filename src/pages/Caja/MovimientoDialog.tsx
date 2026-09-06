@@ -201,7 +201,7 @@ export function MovimientoDialog({
                 onValueChange={(v) => setCategoria(v as CategoriaMovimiento)}
               >
                 <SelectTrigger className="h-10 w-full rounded-xl">
-                  <SelectValue />
+                  <SelectValue>{(v) => categorias.find((c) => c.id === v)?.label ?? ""}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {categorias.map((c) => (
@@ -219,7 +219,9 @@ export function MovimientoDialog({
               <Label>Servicio de la carta (opcional)</Label>
               <Select value={servicioId} onValueChange={(v) => elegirServicio(v as string)}>
                 <SelectTrigger className="h-10 w-full rounded-xl">
-                  <SelectValue placeholder="Elegir de la carta" />
+                  <SelectValue placeholder="Elegir de la carta">
+                    {(v) => servicios.find((s) => s.id === v)?.name ?? "Elegir de la carta"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {servicios.map((s) => (
@@ -240,7 +242,9 @@ export function MovimientoDialog({
               <Label>Profesional (opcional)</Label>
               <Select value={profesionalId} onValueChange={(v) => setProfesionalId(v ?? "")}>
                 <SelectTrigger className="h-10 w-full rounded-xl">
-                  <SelectValue placeholder="Sin asignar" />
+                  <SelectValue placeholder="Sin asignar">
+                    {(v) => profesionales.find((p) => p.id === v)?.nombre ?? "Sin asignar"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {profesionales

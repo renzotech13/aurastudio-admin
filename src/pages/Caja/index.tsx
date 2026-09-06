@@ -53,22 +53,25 @@ import {
   porMetodo,
   porProfesional,
   sedeDeMovimiento,
+  totalizar,
   topServicios,
   useCaja,
 } from "./datos"
 import { resolverRango, variacion, type RangoId } from "./rango"
 import { useEquipo } from "@/lib/equipo"
+import { movimientosDeEjemplo } from "./ejemplo"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function Caja() {
   const { session } = useAuth()
   const [rangoId, setRangoId] = useState<RangoId>("hoy")
   const rango = useMemo(() => resolverRango(rangoId), [rangoId])
-  const { movimientos, vivos, totales, totalesPrevios, abiertas, sesiones, cargando, error, recargar } =
+  const { movimientos, vivos, previosVivos, abiertas, sesiones, cargando, error, recargar } =
     useCaja(rango)
 
   const [dialogo, setDialogo] = useState<MovimientoTipo | null>(null)
   const [sedeId, setSedeId] = useState<string>("all")
+  const [ejemplo, setEjemplo] = useState(false)
   const [profesionalId, setProfesionalId] = useState<string>("all")
   const { sedes, profesionales, nombreProfesional } = useEquipo()
 
@@ -84,17 +87,33 @@ export default function Caja() {
   const profesionalesDeSede =
     sedeId === "all" ? profesionales : profesionales.filter((p) => p.sede_id === sedeId)
 
+  // Con el interruptor puesto se pinta una caja inventada en memoria, sin
+  // tocar la base: es para ver el tablero cuando todavía no hay movimientos
+  // reales que mostrar.
+  const fuente = useMemo(
+    () => (ejemplo ? movimientosDeEjemplo(rango.dias, sedes, profesionales) : vivos),
+    [ejemplo, rango.dias, sedes, profesionales, vivos],
+  )
+
   // Local y profesional acotan TODO lo de abajo (gráficos, cifras y tabla),
-  // igual que el rango de fechas. Se aplica sobre `vivos` (lo no anulado) para
-  // que cada agregador reciba ya lo filtrado y no tenga que saber del filtro.
-  const enFoco = useMemo(
-    () =>
-      vivos.filter((m) => {
-        if (sedeId !== "all" && sedeDeMovimiento(m) !== sedeId) return false
-        if (profesionalId !== "all" && m.profesional_id !== profesionalId) return false
-        return true
-      }),
-    [vivos, sedeId, profesionalId],
+  // igual que el rango de fechas. Se aplica antes de los agregadores para que
+  // ninguno tenga que saber del filtro.
+  const filtrar = <T extends { profesional_id: string | null }>(movs: T[]) =>
+    movs.filter((m) => {
+      if (sedeId !== "all" && sedeDeMovimiento(m as never) !== sedeId) return false
+      if (profesionalId !== "all" && m.profesional_id !== profesionalId) return false
+      return true
+    })
+
+  const enFoco = useMemo(() => filtrar(fuente), [fuente, sedeId, profesionalId])
+
+  // Las cifras y su comparación tienen que mirar lo MISMO que los gráficos: si
+  // el filtro acotara solo los gráficos, el titular diría un número y el
+  // gráfico de al lado otro.
+  const totales = useMemo(() => totalizar(enFoco), [enFoco])
+  const totalesPrevios = useMemo(
+    () => totalizar(ejemplo ? [] : filtrar(previosVivos)),
+    [ejemplo, previosVivos, sedeId, profesionalId],
   )
 
   const serie = useMemo(() => porDia(enFoco, rango.dias), [enFoco, rango.dias])
@@ -166,7 +185,7 @@ export default function Caja() {
             }}
           >
             <SelectTrigger className="h-9 w-[180px] rounded-xl">
-              <SelectValue />
+              <SelectValue>{(v) => sedes.find((x) => x.id === v)?.nombre ?? "Todos los locales"}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los locales</SelectItem>
@@ -178,9 +197,20 @@ export default function Caja() {
             </SelectContent>
           </Select>
 
+          <Button
+            variant={ejemplo ? "gold" : "outline"}
+            size="sm"
+            aria-pressed={ejemplo}
+            onClick={() => setEjemplo((v) => !v)}
+          >
+            {ejemplo ? "Ver datos reales" : "Ver con datos de ejemplo"}
+          </Button>
+
           <Select value={profesionalId} onValueChange={(v) => setProfesionalId(v ?? "all")}>
             <SelectTrigger className="h-9 w-[180px] rounded-xl">
-              <SelectValue />
+              <SelectValue>
+                {(v) => profesionales.find((x) => x.id === v)?.nombre ?? "Todas las profesionales"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas las profesionales</SelectItem>
@@ -198,6 +228,16 @@ export default function Caja() {
             : `${fechaCorta(rango.desde)} — ${fechaCorta(rango.dias[rango.dias.length - 1])}`}
         </span>
       </div>
+
+      {ejemplo ? (
+        <Card className="mb-6 border-gold/60 bg-gold/10">
+          <CardContent className="text-[13px]">
+            <strong>Datos de ejemplo.</strong> Nada de esto es real ni está guardado: son
+            movimientos inventados para ver cómo se comporta el tablero. Los cobros de verdad
+            no se ven mientras esto esté puesto.
+          </CardContent>
+        </Card>
+      ) : null}
 
       {error ? (
         <Card className="mb-6 border-destructive/40">
