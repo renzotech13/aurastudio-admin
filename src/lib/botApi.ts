@@ -32,7 +32,7 @@ const MENSAJES_ERROR: Record<string, string> = {
   red: "No se pudo conectar con el bot. Revisa que esté en línea.",
 }
 
-async function post<T>(path: string, body: unknown): Promise<T> {
+async function llamar<T>(path: string, init: RequestInit): Promise<T> {
   if (!BASE_URL) throw new BotApiError(MENSAJES_ERROR.sin_configurar, "sin_configurar")
 
   const { data } = await supabase.auth.getSession()
@@ -42,9 +42,8 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   let res: Response
   try {
     res = await fetch(`${BASE_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(body),
+      ...init,
+      headers: { ...init.headers, Authorization: `Bearer ${token}` },
     })
   } catch {
     throw new BotApiError(MENSAJES_ERROR.red, "red")
@@ -62,6 +61,18 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return json as T
 }
 
+function post<T>(path: string, body: unknown): Promise<T> {
+  return llamar<T>(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+}
+
+function get<T>(path: string): Promise<T> {
+  return llamar<T>(path, { method: "GET" })
+}
+
 export function enviarMensajeHumano(conversacionId: string, texto: string) {
   return post<{ mensaje: Mensaje }>("/admin/mensajes", { conversacionId, texto })
 }
@@ -72,6 +83,18 @@ export function enviarPlantillaMensaje(conversacionId: string, plantillaId: stri
 
 export function enviarPromocion(params: { clienteIds: string[]; plantilla: string; parametros?: string[] }) {
   return post<{ enviadas: number; fallidas: { clienteId: string; motivo: string }[] }>("/admin/promociones", params)
+}
+
+export type PlantillaWhatsapp = {
+  nombre: string
+  estado: "APPROVED" | "PENDING" | "REJECTED" | "PAUSED" | "DISABLED"
+  categoria: "UTILITY" | "MARKETING" | "AUTHENTICATION"
+  idioma: string
+  variables: number
+}
+
+export function listarPlantillas() {
+  return get<{ plantillas: PlantillaWhatsapp[] }>("/admin/plantillas")
 }
 
 /**
