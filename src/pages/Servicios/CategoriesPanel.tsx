@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { ArrowDown, ArrowUp, Pencil, Plus } from "lucide-react"
+
 import { supabase } from "@/lib/supabase"
+import { numero } from "@/lib/format"
 import type { Service, ServiceCategory } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import CategoryFormDialog from "@/pages/Servicios/CategoryFormDialog"
 
@@ -84,10 +87,16 @@ export default function CategoriesPanel() {
     }
   }
 
+  const activas = categories.filter((c) => c.active).length
+
   return (
     <div>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <span className="text-[11.5px] text-muted-foreground">
+          {loading ? "—" : `${numero(activas)} activa${activas === 1 ? "" : "s"} de ${numero(categories.length)}`}
+        </span>
         <Button
+          variant="gold"
           size="sm"
           onClick={() => {
             setEditing(null)
@@ -99,66 +108,74 @@ export default function CategoriesPanel() {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-        {loading ? (
-          <div className="flex flex-col gap-3 p-5">
-            <Skeleton className="h-9 w-full" />
-            <Skeleton className="h-9 w-full" />
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10"></TableHead>
-                <TableHead>Categoría</TableHead>
-                <TableHead># servicios</TableHead>
-                <TableHead>Activa</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categories.map((c, i) => (
-                <TableRow key={c.id}>
-                  <TableCell className="text-lg">{c.icon}</TableCell>
-                  <TableCell>
-                    <div className="font-medium">{c.title}</div>
-                    <div className="text-xs text-muted-foreground">{c.id}</div>
-                  </TableCell>
-                  <TableCell>{serviceCounts[c.id] ?? 0}</TableCell>
-                  <TableCell>
-                    <Switch checked={c.active} onCheckedChange={() => toggleActive(c)} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon-sm" disabled={i === 0} onClick={() => move(i, -1)}>
-                        <ArrowUp className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        disabled={i === categories.length - 1}
-                        onClick={() => move(i, 1)}
-                      >
-                        <ArrowDown className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => {
-                          setEditing(c)
-                          setDialogOpen(true)
-                        }}
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+      <Card crest>
+        <CardHeader>
+          <CardTitle>Categorías</CardTitle>
+        </CardHeader>
+        <CardContent className="px-0">
+          {loading ? (
+            <div className="space-y-2 px-5">
+              {[0, 1].map((i) => (
+                <Skeleton key={i} className="h-10 rounded-xl" />
               ))}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10"></TableHead>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead># servicios</TableHead>
+                    <TableHead>Activa</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {categories.map((c, i) => (
+                    <TableRow key={c.id} className={c.active ? undefined : "opacity-55"}>
+                      <TableCell className="text-lg">{c.icon}</TableCell>
+                      <TableCell>
+                        <div>{c.title}</div>
+                        <div className="text-[11.5px] text-muted-foreground">{c.id}</div>
+                      </TableCell>
+                      <TableCell className="tnum">{numero(serviceCounts[c.id] ?? 0)}</TableCell>
+                      <TableCell>
+                        <Switch checked={c.active} onCheckedChange={() => toggleActive(c)} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon-sm" disabled={i === 0} onClick={() => move(i, -1)}>
+                            <ArrowUp className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            disabled={i === categories.length - 1}
+                            onClick={() => move(i, 1)}
+                          >
+                            <ArrowDown className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => {
+                              setEditing(c)
+                              setDialogOpen(true)
+                            }}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <CategoryFormDialog
         open={dialogOpen}

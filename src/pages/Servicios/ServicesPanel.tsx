@@ -1,14 +1,22 @@
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { ArrowDown, ArrowUp, Pencil, Plus } from "lucide-react"
+
 import { supabase } from "@/lib/supabase"
+import { numero } from "@/lib/format"
 import { BOOKING_GROUPS, type Service, type ServiceCategory } from "@/lib/types"
+import { Segmented, type OpcionSegmentada } from "@/components/Segmented"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import ServiceFormDialog from "@/pages/Servicios/ServiceFormDialog"
+
+const GRUPOS: readonly OpcionSegmentada<(typeof BOOKING_GROUPS)[number]>[] = BOOKING_GROUPS.map((g) => ({
+  id: g,
+  label: g,
+}))
 
 export default function ServicesPanel() {
   const [services, setServices] = useState<Service[]>([])
@@ -50,6 +58,7 @@ export default function ServicesPanel() {
     [categories],
   )
   const filtered = useMemo(() => services.filter((s) => s.booking_group === group), [services, group])
+  const activosEnGrupo = useMemo(() => filtered.filter((s) => s.active).length, [filtered])
 
   async function move(index: number, direction: -1 | 1) {
     const target = index + direction
@@ -88,107 +97,110 @@ export default function ServicesPanel() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={group} onValueChange={(v) => setGroup(v as typeof group)}>
-          <TabsList>
-            {BOOKING_GROUPS.map((g) => (
-              <TabsTrigger key={g} value={g}>
-                {g}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <Button
-          size="sm"
-          disabled={!categories.length}
-          onClick={() => {
-            setEditing(null)
-            setDialogOpen(true)
-          }}
-        >
-          <Plus className="size-4" />
-          Nuevo servicio
-        </Button>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <Segmented opciones={GRUPOS} valor={group} onChange={setGroup} etiquetaAria="Filtrar por grupo de reserva" />
+        <div className="flex items-center gap-3">
+          <span className="text-[11.5px] text-muted-foreground">
+            {loading ? "—" : `${numero(activosEnGrupo)} activo${activosEnGrupo === 1 ? "" : "s"} de ${numero(filtered.length)}`}
+          </span>
+          <Button
+            variant="gold"
+            size="sm"
+            disabled={!categories.length}
+            onClick={() => {
+              setEditing(null)
+              setDialogOpen(true)
+            }}
+          >
+            <Plus className="size-4" />
+            Nuevo servicio
+          </Button>
+        </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-        {loading ? (
-          <div className="flex flex-col gap-3 p-5">
-            <Skeleton className="h-9 w-full" />
-            <Skeleton className="h-9 w-full" />
-            <Skeleton className="h-9 w-full" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="px-6 py-16 text-center text-sm text-muted-foreground">
-            No hay servicios en este grupo todavía.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16"></TableHead>
-                  <TableHead>Servicio</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Duración</TableHead>
-                  <TableHead>Precio</TableHead>
-                  <TableHead>Adelanto</TableHead>
-                  <TableHead>Activo</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((s, i) => (
-                  <TableRow key={s.id}>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon-sm" disabled={i === 0} onClick={() => move(i, -1)}>
-                          <ArrowUp className="size-4" />
-                        </Button>
+      <Card crest>
+        <CardHeader>
+          <CardTitle>{group}</CardTitle>
+        </CardHeader>
+        <CardContent className="px-0">
+          {loading ? (
+            <div className="space-y-2 px-5">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-10 rounded-xl" />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="px-5 text-[13px] text-muted-foreground">
+              No hay servicios en este grupo todavía.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16"></TableHead>
+                    <TableHead>Servicio</TableHead>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead>Duración</TableHead>
+                    <TableHead>Precio</TableHead>
+                    <TableHead>Adelanto</TableHead>
+                    <TableHead>Activo</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((s, i) => (
+                    <TableRow key={s.id} className={s.active ? undefined : "opacity-55"}>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon-sm" disabled={i === 0} onClick={() => move(i, -1)}>
+                            <ArrowUp className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            disabled={i === filtered.length - 1}
+                            onClick={() => move(i, 1)}
+                          >
+                            <ArrowDown className="size-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>{s.name}</div>
+                        <div className="text-[11.5px] text-muted-foreground">{s.id}</div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {categoryById[s.category_id]?.title ?? s.category_id}
+                      </TableCell>
+                      <TableCell>{s.duration}</TableCell>
+                      <TableCell className="tnum">S/ {s.price}</TableCell>
+                      <TableCell className="tnum text-muted-foreground">
+                        {s.deposit_amount != null ? `S/ ${s.deposit_amount}` : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Switch checked={s.active} onCheckedChange={() => toggleActive(s)} />
+                      </TableCell>
+                      <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          disabled={i === filtered.length - 1}
-                          onClick={() => move(i, 1)}
+                          onClick={() => {
+                            setEditing(s)
+                            setDialogOpen(true)
+                          }}
                         >
-                          <ArrowDown className="size-4" />
+                          <Pencil className="size-4" />
                         </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{s.name}</div>
-                      <div className="text-xs text-muted-foreground">{s.id}</div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {categoryById[s.category_id]?.title ?? s.category_id}
-                    </TableCell>
-                    <TableCell className="text-sm">{s.duration}</TableCell>
-                    <TableCell className="text-sm">S/ {s.price}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {s.deposit_amount != null ? `S/ ${s.deposit_amount}` : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Switch checked={s.active} onCheckedChange={() => toggleActive(s)} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => {
-                          setEditing(s)
-                          setDialogOpen(true)
-                        }}
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <ServiceFormDialog
         open={dialogOpen}

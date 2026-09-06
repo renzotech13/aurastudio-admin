@@ -1,29 +1,33 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from "react"
+
+import { Segmented, type OpcionSegmentada } from "@/components/Segmented"
+import { PageHeader } from "@/components/PageHeader"
 import CategoriesPanel from "@/pages/Servicios/CategoriesPanel"
 import ServicesPanel from "@/pages/Servicios/ServicesPanel"
-import { PageHeader } from "@/components/PageHeader"
+
+type Tab = "categorias" | "servicios"
+
+const TABS: readonly OpcionSegmentada<Tab>[] = [
+  { id: "categorias", label: "Categorías" },
+  { id: "servicios", label: "Servicios" },
+]
 
 export default function Servicios() {
+  const [tab, setTab] = useState<Tab>("servicios")
+
   return (
-    <div className="mx-auto max-w-5xl px-8 py-8">
+    <div className="mx-auto w-full max-w-[1400px] px-5 py-6 sm:px-8 sm:py-8">
       <PageHeader
         eyebrow="Contenido"
         titulo="Servicios"
         descripcion="Categorías y servicios que se muestran en la carta del sitio y en el reservador."
       />
 
-      <Tabs defaultValue="servicios">
-        <TabsList className="mb-6">
-          <TabsTrigger value="categorias">Categorías</TabsTrigger>
-          <TabsTrigger value="servicios">Servicios</TabsTrigger>
-        </TabsList>
-        <TabsContent value="categorias">
-          <CategoriesPanel />
-        </TabsContent>
-        <TabsContent value="servicios">
-          <ServicesPanel />
-        </TabsContent>
-      </Tabs>
+      <div className="mb-6">
+        <Segmented opciones={TABS} valor={tab} onChange={setTab} etiquetaAria="Ver categorías o servicios" />
+      </div>
+
+      {tab === "categorias" ? <CategoriesPanel /> : <ServicesPanel />}
     </div>
   )
 }
