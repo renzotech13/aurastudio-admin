@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { CategoryIcon } from "@/lib/categoryIcons"
 import CategoryFormDialog from "@/pages/Servicios/CategoryFormDialog"
 
 export default function CategoriesPanel() {
@@ -134,7 +135,9 @@ export default function CategoriesPanel() {
                 <TableBody>
                   {categories.map((c, i) => (
                     <TableRow key={c.id} className={c.active ? undefined : "opacity-55"}>
-                      <TableCell className="text-lg">{c.icon}</TableCell>
+                      <TableCell>
+                        <CategoryIcon name={c.icon} className="size-5 text-gold-deep dark:text-gold" />
+                      </TableCell>
                       <TableCell>
                         <div>{c.title}</div>
                         <div className="text-[11.5px] text-muted-foreground">{c.id}</div>

@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from "react"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
 import type { ServiceCategory } from "@/lib/types"
+import { CATEGORY_ICON_OPTIONS } from "@/lib/categoryIcons"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -40,7 +42,7 @@ export default function CategoryFormDialog({
 }) {
   const isEdit = !!category
   const [id, setId] = useState("")
-  const [icon, setIcon] = useState("")
+  const [icon, setIcon] = useState(CATEGORY_ICON_OPTIONS[0].key)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [images, setImages] = useState(["", "", ""])
@@ -50,7 +52,7 @@ export default function CategoryFormDialog({
   useEffect(() => {
     if (!open) return
     setId(category?.id ?? "")
-    setIcon(category?.icon ?? "")
+    setIcon(category?.icon ?? CATEGORY_ICON_OPTIONS[0].key)
     setTitle(category?.title ?? "")
     setDescription(category?.description ?? "")
     const imgs = category?.images ?? []
@@ -92,11 +94,35 @@ export default function CategoryFormDialog({
           <DialogTitle>{isEdit ? "Editar categoría" : "Nueva categoría"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cat-icon">Ícono</Label>
-              <Input id="cat-icon" required value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="✎" />
+          <div className="flex flex-col gap-2">
+            <Label>Ícono</Label>
+            <div className="grid grid-cols-7 gap-1.5" role="radiogroup" aria-label="Ícono de la categoría">
+              {CATEGORY_ICON_OPTIONS.map(({ key, label, Icon }) => {
+                const seleccionado = icon === key
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    role="radio"
+                    aria-checked={seleccionado}
+                    aria-label={label}
+                    title={label}
+                    onClick={() => setIcon(key)}
+                    className={cn(
+                      "flex aspect-square items-center justify-center rounded-xl border transition-colors",
+                      "focus-visible:ring-2 focus-visible:ring-gold/50 focus-visible:outline-none",
+                      seleccionado
+                        ? "border-gold bg-gold/15 text-gold-deep dark:text-gold"
+                        : "border-input text-muted-foreground hover:border-gold/50 hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="size-4" aria-hidden />
+                  </button>
+                )
+              })}
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-2">
               <Label htmlFor="cat-id">Id (slug)</Label>
               <Input
@@ -108,10 +134,10 @@ export default function CategoryFormDialog({
                 placeholder="cejas"
               />
             </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="cat-title">Título</Label>
-            <Input id="cat-title" required value={title} onChange={(e) => setTitle(e.target.value)} />
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="cat-title">Título</Label>
+              <Input id="cat-title" required value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="cat-desc">Descripción</Label>
