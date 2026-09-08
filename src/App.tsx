@@ -27,7 +27,7 @@ function Gate() {
         <Route path="/productos" element={<Productos />} />
         <Route path="/servicios" element={<Servicios />} />
         <Route path="/reservas" element={<Bookings />} />
-        <Route path="/equipo" element={<Equipo />} />
+        <Route path="/profesionales" element={<Equipo />} />
         <Route path="/disponibilidad" element={<Disponibilidad />} />
         <Route path="/conversaciones" element={<CRM />} />
         <Route path="/multimedia" element={<Multimedia />} />

@@ -31,7 +31,7 @@ const GRUPOS = [
       { to: "/resumen", label: "Resumen", icon: LayoutDashboard },
       { to: "/caja", label: "Caja", icon: Wallet },
       { to: "/reservas", label: "Reservas", icon: CalendarCheck2 },
-      { to: "/equipo", label: "Equipo", icon: Users },
+      { to: "/profesionales", label: "Profesionales", icon: Users },
       { to: "/disponibilidad", label: "Disponibilidad", icon: CalendarClock },
       { to: "/conversaciones", label: "Conversaciones", icon: MessagesSquare },
     ],

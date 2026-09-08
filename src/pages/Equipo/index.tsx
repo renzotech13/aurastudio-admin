@@ -107,7 +107,7 @@ export default function Equipo() {
     <div className="mx-auto w-full max-w-[1400px] px-5 py-6 sm:px-8 sm:py-8">
       <PageHeader
         eyebrow="Operación"
-        titulo="Equipo"
+        titulo="Profesionales"
         descripcion={
           cargando
             ? "Cargando…"
