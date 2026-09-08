@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { CalendarCheck2, CalendarX2, ChevronDown, CircleCheck, UserX } from "lucide-react"
+import { CalendarCheck2, CalendarX2, ChevronDown, CircleCheck, UserPlus, UserX } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
 import { actualizarEstadoCita as actualizarEstadoCitaBot, BotApiError } from "@/lib/botApi"
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { CITA_ESTADO_LABEL, type Cita, type CitaEstado } from "@/lib/types"
 import { useEquipo } from "@/lib/equipo"
 import FichaClienteDialog from "@/pages/Reservas/FichaClienteDialog"
+import WalkInDialog from "@/pages/Reservas/WalkInDialog"
 import { Cifra } from "@/components/charts"
 import { Segmented, type OpcionSegmentada } from "@/components/Segmented"
 import { PageHeader } from "@/components/PageHeader"
@@ -82,6 +83,7 @@ export default function Bookings() {
   const [sedeId, setSedeId] = useState<string>("all")
   const [profesionalId, setProfesionalId] = useState<string>("all")
   const [fichaCliente, setFichaCliente] = useState<{ clienteId: string; citaId: string } | null>(null)
+  const [walkIn, setWalkIn] = useState(false)
   const { sedes, profesionales, nombreSede, nombreProfesional } = useEquipo()
 
   // Al cambiar de local, la profesional elegida puede no pertenecer a él: los
@@ -263,6 +265,11 @@ export default function Bookings() {
               ? "—"
               : `${numero(filtradas.length)} de ${numero(citas.length)} en la lista`}
           </span>
+
+          <Button variant="gold" size="sm" onClick={() => setWalkIn(true)}>
+            <UserPlus className="size-4" />
+            Registrar sin reserva
+          </Button>
         </div>
       </div>
 
@@ -370,6 +377,11 @@ export default function Bookings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Sin onGuardado que recargue: la suscripción en tiempo real sobre
+          `citas` ya trae la nueva sola, y recargar la página entera perdería
+          los filtros que el staff tuviera puestos. */}
+      <WalkInDialog open={walkIn} onOpenChange={setWalkIn} onGuardado={() => {}} />
 
       <FichaClienteDialog
         clienteId={fichaCliente?.clienteId ?? null}

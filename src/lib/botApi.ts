@@ -25,6 +25,10 @@ const MENSAJES_ERROR: Record<string, string> = {
   invalid_token: "Tu sesión expiró. Vuelve a iniciar sesión.",
   forbidden: "Tu usuario no tiene permisos de staff.",
   conversacion_no_encontrada: "Esa conversación ya no existe.",
+  conflicto_horario: "Esa profesional ya tiene una cita a esa hora. Elige otra hora u otra profesional.",
+  fuera_de_politica: "Esa hora cae fuera del horario de atención del local.",
+  profesional_no_encontrada: "Esa profesional no atiende en ese local.",
+  cliente_no_encontrado: "Esa clienta ya no existe.",
   cita_no_encontrada: "Esa cita ya no existe.",
   bloqueo_no_encontrado: "Ese bloqueo ya no existe.",
   plantilla_no_encontrada: "Esa multimedia ya no existe.",
@@ -95,6 +99,25 @@ export type PlantillaWhatsapp = {
 
 export function listarPlantillas() {
   return get<{ plantillas: PlantillaWhatsapp[] }>("/admin/plantillas")
+}
+
+/**
+ * Registrar a una clienta que llegó sin reservar. Pasa por el bot porque
+ * ahí vive la validación de solapamiento y el permiso para saltarse la
+ * antelación mínima, que desde el navegador no se puede otorgar.
+ */
+export function registrarWalkIn(params: {
+  cliente_id?: string
+  telefono?: string
+  nombre?: string
+  servicio_ids: string[]
+  sede_id: string
+  profesional_id: string
+  inicio: string
+  estado: "confirmada" | "completada"
+  comentario?: string
+}) {
+  return post<{ citas: Cita[] }>("/admin/citas", params)
 }
 
 /**
