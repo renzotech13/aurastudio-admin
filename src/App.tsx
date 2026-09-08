@@ -8,6 +8,8 @@ import Productos from "@/pages/Productos"
 import Servicios from "@/pages/Servicios"
 import Equipo from "@/pages/Equipo"
 import CRM from "@/pages/CRM"
+import Metricas from "@/pages/CRM/Metricas"
+import Canales from "@/pages/Canales"
 import Disponibilidad from "@/pages/Disponibilidad"
 import Multimedia from "@/pages/Multimedia"
 import AppShell from "@/components/AppShell"
@@ -30,6 +32,8 @@ function Gate() {
         <Route path="/profesionales" element={<Equipo />} />
         <Route path="/disponibilidad" element={<Disponibilidad />} />
         <Route path="/conversaciones" element={<CRM />} />
+        <Route path="/conversaciones/metricas" element={<Metricas />} />
+        <Route path="/canales" element={<Canales />} />
         <Route path="/multimedia" element={<Multimedia />} />
         <Route path="*" element={<Navigate to="/resumen" replace />} />
       </Routes>

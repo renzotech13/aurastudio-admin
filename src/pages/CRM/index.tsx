@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { Megaphone, UserPlus } from "lucide-react"
+import { BarChart3, Bell, BellOff, Megaphone, UserPlus } from "lucide-react"
+import { Link } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/lib/auth"
+import { useAvisos } from "@/lib/avisos"
 import { CANAL_LABEL } from "@/lib/canales"
 import { CANALES, type Canal, type Cliente, type ClienteEtiqueta, type ConversacionResumen, type Etapa, ETAPA_LABEL, ETAPAS, type Etiqueta, type Profile } from "@/lib/types"
 import { Button } from "@/components/ui/button"
@@ -59,6 +61,7 @@ function cargarFiltrosGuardados(): { canal: FiltroCanal; estado: FiltroEstado; e
 
 export default function CRM() {
   const { session } = useAuth()
+  const { avisosActivos, activar: activarAvisos, desactivar: desactivarAvisos } = useAvisos()
   const guardados = useMemo(cargarFiltrosGuardados, [])
 
   const [conversaciones, setConversaciones] = useState<ConversacionResumen[]>([])
@@ -191,7 +194,15 @@ export default function CRM() {
                 : `${sinResponder} sin responder · ${CANALES.map((canal) => `${porCanal[canal]} ${CANAL_LABEL[canal]}`).join(" · ")}`}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => (avisosActivos ? desactivarAvisos() : activarAvisos())} className="gap-2">
+              {avisosActivos ? <BellOff className="size-4" /> : <Bell className="size-4" />}
+              {avisosActivos ? "Avisos activados" : "Activar avisos"}
+            </Button>
+            <Button variant="outline" render={<Link to="/conversaciones/metricas" />} className="gap-2">
+              <BarChart3 className="size-4" />
+              Métricas
+            </Button>
             <Button variant="outline" onClick={() => setImportarAbierto(true)} className="gap-2">
               <UserPlus className="size-4" />
               Importar clientas
