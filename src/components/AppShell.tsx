@@ -8,6 +8,7 @@ import {
   LogOut,
   Menu,
   MessagesSquare,
+  Radio,
   ShoppingBag,
   Sparkles,
   Users,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react"
 
 import { useAuth } from "@/lib/auth"
+import { AvisosProvider, useAvisos } from "@/lib/avisos"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
@@ -34,6 +36,7 @@ const GRUPOS = [
       { to: "/profesionales", label: "Profesionales", icon: Users },
       { to: "/disponibilidad", label: "Disponibilidad", icon: CalendarClock },
       { to: "/conversaciones", label: "Conversaciones", icon: MessagesSquare },
+      { to: "/canales", label: "Canales", icon: Radio },
     ],
   },
   {
@@ -47,9 +50,21 @@ const GRUPOS = [
 ]
 
 export default function AppShell({ children }: { children: ReactNode }) {
+  // El provider envuelve todo (barra lateral + páginas): así CRM/index.tsx
+  // puede usar useAvisos() para el botón "Activar avisos" sin abrir un
+  // segundo canal de realtime que duplicaría cada toast.
+  return (
+    <AvisosProvider>
+      <AppShellInterno>{children}</AppShellInterno>
+    </AvisosProvider>
+  )
+}
+
+function AppShellInterno({ children }: { children: ReactNode }) {
   const { session, signOut } = useAuth()
   const [abierto, setAbierto] = useState(false)
   const { pathname } = useLocation()
+  const { sinResponder } = useAvisos()
 
   // Navegar cierra el menú móvil: si no, tapa la página a la que acabas de ir.
   useEffect(() => setAbierto(false), [pathname])
@@ -114,6 +129,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
                             )}
                           />
                           {label}
+                          {to === "/conversaciones" && sinResponder > 0 && (
+                            <span
+                              className={cn(
+                                "ml-auto flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
+                                isActive ? "bg-[#241a12] text-[#f2ebdd]" : "bg-gold text-[#241a12]"
+                              )}
+                            >
+                              {sinResponder}
+                            </span>
+                          )}
                         </>
                       )}
                     </NavLink>
