@@ -4,9 +4,10 @@ import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
 import { registrarWalkIn, BotApiError } from "@/lib/botApi"
 import { useEquipo } from "@/lib/equipo"
-import { LIMA_OFFSET } from "@/lib/format"
+import { useAuth } from "@/lib/auth"
+import { LIMA_OFFSET, money, precioNumerico } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { Service } from "@/lib/types"
+import { METODOS_PAGO, METODO_PAGO_LABEL, type MetodoPago, type Service } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -45,10 +46,12 @@ export default function WalkInDialog({
   onOpenChange: (open: boolean) => void
   onGuardado: () => void
 }) {
+  const { session } = useAuth()
   const { sedes, profesionales } = useEquipo()
   const [servicios, setServicios] = useState<Service[]>([])
   const [asignaciones, setAsignaciones] = useState<{ profesional_id: string; sede_id: string }[]>([])
   const [especialidades, setEspecialidades] = useState<{ profesional_id: string; servicio_id: string }[]>([])
+  const [sesionesAbiertas, setSesionesAbiertas] = useState<{ id: string; sede_id: string | null }[]>([])
 
   const [busqueda, setBusqueda] = useState("")
   const [resultados, setResultados] = useState<ClienteBreve[]>([])
@@ -62,6 +65,10 @@ export default function WalkInDialog({
   const [inicio, setInicio] = useState(ahoraEnLima())
   const [estado, setEstado] = useState<"completada" | "confirmada">("completada")
   const [comentario, setComentario] = useState("")
+  const [cobrar, setCobrar] = useState(true)
+  const [monto, setMonto] = useState("")
+  const [montoTocado, setMontoTocado] = useState(false)
+  const [metodo, setMetodo] = useState<MetodoPago>("efectivo")
   const [guardando, setGuardando] = useState(false)
 
   useEffect(() => {
@@ -76,12 +83,17 @@ export default function WalkInDialog({
     setInicio(ahoraEnLima())
     setEstado("completada")
     setComentario("")
+    setCobrar(true)
+    setMonto("")
+    setMontoTocado(false)
+    setMetodo("efectivo")
 
     Promise.all([
       supabase.from("services").select("*").eq("active", true).order("sort_order"),
       supabase.from("profesional_sedes").select("profesional_id,sede_id"),
       supabase.from("profesional_servicios").select("profesional_id,servicio_id"),
-    ]).then(([svc, asig, esp]) => {
+      supabase.from("caja_sesiones").select("id,sede_id").eq("estado", "abierta"),
+    ]).then(([svc, asig, esp, cajas]) => {
       setServicios((svc.data ?? []) as Service[])
       setAsignaciones(
         (asig.data ?? []).map((a) => ({
@@ -94,6 +106,9 @@ export default function WalkInDialog({
           profesional_id: e.profesional_id as string,
           servicio_id: e.servicio_id as string,
         })),
+      )
+      setSesionesAbiertas(
+        (cajas.data ?? []).map((c) => ({ id: c.id as string, sede_id: c.sede_id as string | null })),
       )
     })
   }, [open])
@@ -153,19 +168,45 @@ export default function WalkInDialog({
     [servicioIds, servicios],
   )
 
+  const totalServicios = useMemo(
+    () =>
+      servicioIds.reduce((suma, id) => {
+        const s = servicios.find((x) => x.id === id)
+        return suma + (precioNumerico(s?.price) ?? 0)
+      }, 0),
+    [servicioIds, servicios],
+  )
+
+  // El monto sigue a los servicios elegidos hasta que el staff lo toque a
+  // mano — a partir de ahí es suyo (puede haber descuento, redondeo, etc.)
+  // y dejar de recalcularlo por su cuenta.
+  useEffect(() => {
+    if (!montoTocado) setMonto(totalServicios > 0 ? String(totalServicios) : "")
+  }, [totalServicios, montoTocado])
+
+  // Solo hay dónde anotar el cobro si hay un turno abierto en ESE local: la
+  // caja es por sede desde la migración 0014.
+  const sesionAbierta = useMemo(
+    () => sesionesAbiertas.find((s) => s.sede_id === sedeId) ?? null,
+    [sesionesAbiertas, sedeId],
+  )
+  const montoNum = precioNumerico(monto) ?? 0
+  const registrarCobro = cobrar && !!sesionAbierta
+
   const valido =
     (!!cliente || (nombre.trim().length > 1 && telefono.replace(/\D/g, "").length >= 6)) &&
     servicioIds.length > 0 &&
     !!sedeId &&
     !!profesionalId &&
-    !!inicio
+    !!inicio &&
+    (!registrarCobro || montoNum > 0)
 
   async function guardar(e: FormEvent) {
     e.preventDefault()
     if (!valido) return
     setGuardando(true)
     try {
-      await registrarWalkIn({
+      const resultado = await registrarWalkIn({
         ...(cliente ? { cliente_id: cliente.id } : { telefono: telefono.trim(), nombre: nombre.trim() }),
         servicio_ids: servicioIds,
         sede_id: sedeId,
@@ -174,9 +215,54 @@ export default function WalkInDialog({
         estado,
         ...(comentario.trim() ? { comentario: comentario.trim() } : {}),
       })
-      toast.success("Atención registrada.", {
-        description: "Si cobraste, regístralo también en Caja para que cuente en el arqueo.",
-      })
+
+      if (registrarCobro && sesionAbierta && session) {
+        const unServicio = resultado.citas.length === 1
+        const nombresServicios = servicioIds
+          .map((id) => servicios.find((s) => s.id === id)?.name)
+          .filter(Boolean)
+          .join(" + ")
+
+        // No pasa por el bot: el panel ya inserta movimientos de caja
+        // directo (mismo camino que Caja → Nuevo ingreso), la RLS de
+        // movimientos_caja ya lo permite para staff.
+        const { error: errCaja } = await supabase.from("movimientos_caja").insert({
+          sesion_id: sesionAbierta.id,
+          tipo: "ingreso",
+          categoria: "servicio",
+          concepto: nombresServicios || "Servicio sin reserva",
+          monto: montoNum,
+          metodo,
+          // servicio_id y cita_id son de una sola fila cada uno: con varios
+          // servicios no hay un único al que asignárselos, así que quedan en
+          // null antes que elegir uno arbitrario.
+          servicio_id: unServicio ? servicioIds[0] : null,
+          cita_id: unServicio ? resultado.citas[0].id : null,
+          cliente_id: resultado.cliente.id,
+          profesional_id: profesionalId,
+          registrado_por: session.user.id,
+        })
+
+        if (errCaja) {
+          // La cita ya existe y no se deshace por esto: perder el registro
+          // de la visita sería peor que tener que anotar el cobro a mano.
+          toast.warning("Se registró la atención, pero no se pudo guardar el cobro.", {
+            description: `Anótalo en Caja → Nuevo ingreso: ${money(montoNum)} de ${nombresServicios}.`,
+          })
+          onOpenChange(false)
+          onGuardado()
+          return
+        }
+      }
+
+      toast.success(
+        registrarCobro
+          ? `Atención y cobro de ${money(montoNum)} registrados.`
+          : "Atención registrada.",
+        registrarCobro
+          ? undefined
+          : { description: "Si cobraste, regístralo también en Caja para que cuente en el arqueo." },
+      )
       onOpenChange(false)
       onGuardado()
     } catch (err) {
@@ -354,6 +440,68 @@ export default function WalkInDialog({
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label>Cobro</Label>
+            {!sesionAbierta ? (
+              <p className="text-[11.5px] text-muted-foreground">
+                No hay una caja abierta en{" "}
+                {sedes.find((s) => s.id === sedeId)?.nombre ?? "ese local"} — anota el cobro luego en
+                Caja → Nuevo ingreso.
+              </p>
+            ) : (
+              <>
+                <label className="flex items-center gap-2 text-[12.5px]">
+                  <input
+                    type="checkbox"
+                    checked={cobrar}
+                    onChange={(e) => setCobrar(e.target.checked)}
+                    className="size-3.5 accent-gold"
+                  />
+                  Registrar el cobro en la caja de{" "}
+                  {sedes.find((s) => s.id === sedeId)?.nombre ?? "este local"}
+                </label>
+                {cobrar ? (
+                  <div className="flex flex-col gap-2 rounded-xl border border-border p-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="walkin-monto">Monto</Label>
+                        <Input
+                          id="walkin-monto"
+                          inputMode="decimal"
+                          value={monto}
+                          onChange={(e) => {
+                            setMonto(e.target.value)
+                            setMontoTocado(true)
+                          }}
+                          placeholder="0.00"
+                          className="tnum"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {METODOS_PAGO.map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setMetodo(m)}
+                          aria-pressed={metodo === m}
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-[12px] transition-colors",
+                            metodo === m
+                              ? "border-gold bg-gold text-[#33200f]"
+                              : "border-border text-muted-foreground hover:border-gold/50",
+                          )}
+                        >
+                          {METODO_PAGO_LABEL[m]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">

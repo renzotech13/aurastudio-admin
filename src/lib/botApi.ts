@@ -117,7 +117,10 @@ export function registrarWalkIn(params: {
   estado: "confirmada" | "completada"
   comentario?: string
 }) {
-  return post<{ citas: Cita[] }>("/admin/citas", params)
+  return post<{ citas: Cita[]; cliente: { id: string; nombre: string | null; telefono: string } }>(
+    "/admin/citas",
+    params,
+  )
 }
 
 /**
