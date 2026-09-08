@@ -6,6 +6,7 @@ import Caja from "@/pages/Caja"
 import Bookings from "@/pages/Bookings"
 import Productos from "@/pages/Productos"
 import Servicios from "@/pages/Servicios"
+import Equipo from "@/pages/Equipo"
 import CRM from "@/pages/CRM"
 import Disponibilidad from "@/pages/Disponibilidad"
 import Multimedia from "@/pages/Multimedia"
@@ -26,6 +27,7 @@ function Gate() {
         <Route path="/productos" element={<Productos />} />
         <Route path="/servicios" element={<Servicios />} />
         <Route path="/reservas" element={<Bookings />} />
+        <Route path="/equipo" element={<Equipo />} />
         <Route path="/disponibilidad" element={<Disponibilidad />} />
         <Route path="/conversaciones" element={<CRM />} />
         <Route path="/multimedia" element={<Multimedia />} />
