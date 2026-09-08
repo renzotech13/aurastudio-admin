@@ -122,6 +122,8 @@ from (
   union all
   select 'funcion  metricas_bandeja', exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='metricas_bandeja')
   union all
+  select 'tabla    metricas_contenido_diarias', exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname='metricas_contenido_diarias')
+  union all
   select 'indice   conversaciones_hilo_abierto_idx', exists(select 1 from pg_class where relkind='i' and relname='conversaciones_hilo_abierto_idx')
   union all
   select 'indice   mensajes_external_id_idx', exists(select 1 from pg_class where relkind='i' and relname='mensajes_external_id_idx')
