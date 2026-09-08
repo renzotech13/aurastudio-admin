@@ -164,14 +164,18 @@ export default function ClientPanel({
     <aside className="hidden w-80 shrink-0 flex-col overflow-y-auto border-l border-border xl:flex">
       <div className="border-b border-border px-5 py-4">
         <h3 className="text-sm font-semibold">{conversacion.cliente_nombre?.trim() || "Sin nombre"}</h3>
-        <a
-          href={`https://wa.me/${conversacion.cliente_telefono.replace(/\D/g, "")}`}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs text-muted-foreground hover:text-primary"
-        >
-          {conversacion.cliente_telefono}
-        </a>
+        {conversacion.cliente_telefono ? (
+          <a
+            href={`https://wa.me/${conversacion.cliente_telefono.replace(/\D/g, "")}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-muted-foreground hover:text-primary"
+          >
+            {conversacion.cliente_telefono}
+          </a>
+        ) : (
+          <p className="text-xs text-muted-foreground">Todavía no dio su número</p>
+        )}
         {email && <div className="mt-0.5 truncate text-xs text-muted-foreground">{email}</div>}
       </div>
 

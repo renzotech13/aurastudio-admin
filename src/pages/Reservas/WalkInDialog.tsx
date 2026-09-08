@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-type ClienteBreve = { id: string; nombre: string | null; telefono: string }
+type ClienteBreve = { id: string; nombre: string | null; telefono: string | null }
 
 /** "2026-09-08T15:30" (lo que da un input datetime-local) → ISO con la zona de Lima. */
 function aIsoLima(valorLocal: string): string {

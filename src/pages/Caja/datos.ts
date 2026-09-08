@@ -18,7 +18,7 @@ import { rangoAnterior } from "./rango"
 /** Movimiento con lo que trae el join: nombre del servicio y del cliente. */
 export type MovimientoConDetalle = MovimientoCaja & {
   services: { name: string } | null
-  clientes: { nombre: string | null; telefono: string } | null
+  clientes: { nombre: string | null; telefono: string | null } | null
   /**
    * El local sale de la sesión de caja, no del movimiento: el dinero se
    * atribuye a la caja donde se cobró. Va en null si el movimiento no cuelga

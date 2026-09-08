@@ -41,7 +41,7 @@ type CitaFila = {
   inicio_utc: string
   estado: CitaEstado
   services: { name: string } | null
-  clientes: { nombre: string | null; telefono: string } | null
+  clientes: { nombre: string | null; telefono: string | null } | null
 }
 
 export default function Resumen() {

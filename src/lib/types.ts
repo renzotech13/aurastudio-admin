@@ -107,38 +107,179 @@ export type Profile = {
   created_at: string
 }
 
-/* ---------- CRM: conversaciones de WhatsApp ---------- */
+/* ---------- CRM: bandeja omnicanal (migración 0017) ---------- */
+
+export type Canal = "whatsapp" | "messenger" | "instagram"
+export const CANALES: Canal[] = ["whatsapp", "messenger", "instagram"]
+
+/** De dónde vino la clienta la primera vez. Solo informativo. */
+export type CanalOrigen = Canal | "web" | "manual"
+
+/** Los DMs de un canal son una conversación; los comentarios de una publicación, otra. */
+export type OrigenConversacion = "dm" | "comentario"
 
 /**
  * 'activa' = el bot responde. 'escalada' = un humano tomó la conversación
  * y el bot se calla (lo aplica el bot en handleMessage.ts). 'cerrada' =
  * archivada, tampoco responde.
+ *
+ * OJO: esto es QUIÉN RESPONDE, no en qué punto va el lead — eso es `Etapa`.
+ * Una conversación puede estar 'activa' y 'calificado' a la vez.
  */
 export type ConversacionEstado = "activa" | "escalada" | "cerrada"
+
+/** El embudo comercial. Lo mueven triggers de Postgres, no el panel. */
+export type Etapa = "nuevo" | "en_atencion" | "calificado" | "agendado" | "cerrado"
+
+export const ETAPAS: Etapa[] = ["nuevo", "en_atencion", "calificado", "agendado", "cerrado"]
+
+export const ETAPA_LABEL: Record<Etapa, string> = {
+  nuevo: "Nuevo",
+  en_atencion: "En atención",
+  calificado: "Calificado",
+  agendado: "Agendado",
+  cerrado: "Cerrado",
+}
+
+export type MotivoCierre = "ganado" | "perdido" | "spam" | "sin_respuesta" | "otro"
+
+export const MOTIVOS_CIERRE: MotivoCierre[] = ["ganado", "perdido", "spam", "sin_respuesta", "otro"]
+
+export const MOTIVO_CIERRE_LABEL: Record<MotivoCierre, string> = {
+  ganado: "Ganado",
+  perdido: "Perdido",
+  spam: "Spam",
+  sin_respuesta: "Sin respuesta",
+  otro: "Otro",
+}
 
 /** 'humano' es una respuesta escrita por el staff desde este panel. */
 export type RolMensaje = "user" | "assistant" | "humano"
 
 export type Cliente = {
   id: string
-  telefono: string
+  /**
+   * Null desde la 0017: un lead que llegó por Instagram o Messenger no tiene
+   * teléfono hasta que lo da. Todo lo que dependa de WhatsApp (promociones,
+   * recordatorios, el enlace wa.me) tiene que filtrar por esto.
+   */
+  telefono: string | null
   nombre: string | null
   email: string | null
   notas: string | null
+  canal_origen: CanalOrigen
   created_at: string
   updated_at: string
 }
 
+/**
+ * Un identificador de una clienta en un canal. Una misma persona puede tener
+ * varios: wa_id en WhatsApp, PSID en Messenger, IGSID en Instagram, y otro
+ * distinto con el que comenta — el id de un comentario NO es el de mensajería.
+ */
+export type TipoIdentidad = "wa_id" | "psid" | "igsid" | "fb_comment_user" | "ig_comment_user"
+
+export type ClienteIdentidad = {
+  id: string
+  cliente_id: string
+  canal: Canal
+  tipo: TipoIdentidad
+  external_id: string
+  cuenta_id: string | null
+  nombre_perfil: string | null
+  username: string | null
+  /** La URL que da Meta caduca; el bot la refresca con cada mensaje. */
+  foto_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** Fila de `canales`: interruptores y salud de cada canal. */
+export type CanalConfig = {
+  canal: Canal
+  activo: boolean
+  ia_activa: boolean
+  ia_comentarios_activa: boolean
+  texto_respuesta_privada: string | null
+  cuenta_id: string | null
+  cuenta_nombre: string | null
+  ultimo_webhook_at: string | null
+  updated_at: string
+}
+
+/** Plantilla de texto que el staff inserta escribiendo /atajo. */
+export type RespuestaRapida = {
+  id: string
+  atajo: string
+  titulo: string
+  /** Admite {{nombre}}, {{sede}} y {{profesional}}. */
+  contenido: string
+  /** Null = sirve para todos los canales. */
+  canal: Canal | null
+  activa: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export type TipoEvento =
+  | "asignacion"
+  | "etapa"
+  | "estado"
+  | "cierre"
+  | "fusion"
+  | "respuesta_privada"
+  | "escalada"
+
+export type EventoConversacion = {
+  id: string
+  conversacion_id: string
+  tipo: TipoEvento
+  /** Null = lo hizo el bot o un trigger, no una persona. */
+  actor_id: string | null
+  detalle: Record<string, unknown>
+  created_at: string
+}
+
 export type TipoMedia = "image" | "video" | "audio" | "document"
+
+/**
+ * 'nota' es interna: nunca se envía y Claude no la ve. 'sistema' es un evento
+ * legible dentro del hilo ("Respuesta privada enviada").
+ */
+export type TipoMensaje = "mensaje" | "comentario" | "nota" | "sistema"
+
+export type MensajeMetadata = {
+  post_id?: string
+  media_id?: string
+  permalink?: string
+  parent_id?: string
+  comment_id?: string
+  respondido_privado?: boolean
+  eliminado?: boolean
+  /** 'business_suite' cuando el mensaje lo escribió alguien desde Meta, no desde este panel. */
+  via?: string
+  attachment_type?: string
+  reply_to_story?: string
+  [clave: string]: unknown
+}
 
 export type Mensaje = {
   id: string
   conversacion_id: string
   rol: RolMensaje
+  tipo: TipoMensaje
   contenido: string
+  /** mid de Messenger/Instagram, id del comentario, o el wa_message_id. */
+  external_id: string | null
   wa_message_id: string | null
+  /** Quién lo escribió desde el panel. Null si fue el bot o llegó de la clienta. */
+  autor_id: string | null
   media_url: string | null
+  /** Ruta en el bucket privado `adjuntos`; se muestra con URL firmada. */
+  media_path: string | null
   media_type: TipoMedia | null
+  metadata: MensajeMetadata
   error_entrega: string | null
   created_at: string
 }
@@ -162,17 +303,45 @@ export const TIPO_MEDIA_LABEL: Record<TipoMedia, string> = {
   document: "Documento",
 }
 
-/** Fila de la vista conversaciones_resumen (conversación + cliente + último mensaje). */
+/**
+ * Fila de la vista conversaciones_resumen: conversación + clienta + identidad
+ * + último mensaje. El último mensaje EXCLUYE las notas internas, para que
+ * escribir una nota no haga parecer que la conversación ya fue respondida.
+ */
 export type ConversacionResumen = {
   id: string
   cliente_id: string
   estado: ConversacionEstado
   created_at: string
+  canal: Canal
+  origen: OrigenConversacion
+  /** Id del post (Facebook) o del media (Instagram) cuando origen='comentario'. */
+  hilo_externo: string | null
+  cuenta_id: string | null
+  identidad_id: string | null
+  etapa: Etapa
+  motivo_cierre: MotivoCierre | null
+  asignada_a: string | null
+  asignada_nombre: string | null
   cliente_nombre: string | null
-  cliente_telefono: string
+  /** Null en un lead que todavía no dio su número. */
+  cliente_telefono: string | null
+  identidad_nombre: string | null
+  identidad_username: string | null
+  identidad_foto: string | null
   ultimo_contenido: string | null
   ultimo_rol: RolMensaje | null
+  ultimo_tipo: TipoMensaje | null
+  /**
+   * Solo avanza con mensajes entrantes: de acá sale la ventana de 24 h. Un
+   * comentario NO lo mueve (para eso está ultimo_comentario_at), porque un
+   * comentario no habilita escribir por privado.
+   */
   ultimo_mensaje_at: string
+  ultimo_comentario_at: string | null
+  ultima_respuesta_at: string | null
+  primera_respuesta_at: string | null
+  primera_respuesta_humana_at: string | null
   actividad_at: string
 }
 

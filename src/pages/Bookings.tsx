@@ -34,7 +34,7 @@ import {
 
 /** Cita + los datos del cliente y servicio que trae el join de Supabase. */
 type CitaConDetalle = Cita & {
-  clientes: { nombre: string | null; telefono: string }
+  clientes: { nombre: string | null; telefono: string | null }
   services: { name: string }
 }
 
@@ -319,15 +319,19 @@ export default function Bookings() {
                       </TableCell>
                       <TableCell>
                         <div>{c.clientes.nombre?.trim() || "Sin nombre"}</div>
-                        <a
-                          href={`https://wa.me/${c.clientes.telefono}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="tnum text-[11.5px] text-muted-foreground transition-colors hover:text-gold-deep dark:hover:text-gold"
-                        >
-                          {c.clientes.telefono}
-                        </a>
+                        {c.clientes.telefono ? (
+                          <a
+                            href={`https://wa.me/${c.clientes.telefono}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="tnum text-[11.5px] text-muted-foreground transition-colors hover:text-gold-deep dark:hover:text-gold"
+                          >
+                            {c.clientes.telefono}
+                          </a>
+                        ) : (
+                          <span className="text-[11.5px] text-muted-foreground">Sin teléfono</span>
+                        )}
                       </TableCell>
                       <TableCell className="max-w-[280px]">
                         <span>{c.services.name}</span>

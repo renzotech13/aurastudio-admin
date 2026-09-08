@@ -27,7 +27,7 @@ import {
 type Cliente = {
   id: string
   nombre: string | null
-  telefono: string
+  telefono: string | null
   email: string | null
   notas: string | null
 }

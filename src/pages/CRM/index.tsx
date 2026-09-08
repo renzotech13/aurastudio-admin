@@ -94,7 +94,7 @@ export default function CRM() {
       if (!termino) return true
       return (
         (c.cliente_nombre ?? "").toLowerCase().includes(termino) ||
-        c.cliente_telefono.includes(termino) ||
+        (c.cliente_telefono ?? "").includes(termino) ||
         (c.ultimo_contenido ?? "").toLowerCase().includes(termino)
       )
     })
