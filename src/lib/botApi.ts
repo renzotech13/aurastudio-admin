@@ -10,11 +10,15 @@ const BASE_URL = import.meta.env.VITE_BOT_API_URL as string | undefined
  */
 export class BotApiError extends Error {
   readonly code: string
+  /** El body completo del error, tal como lo mandó el bot — algunos endpoints
+   *  (telefono_en_uso) van con datos extra que el mensaje traducido no cubre. */
+  readonly detalle: Record<string, unknown>
 
-  constructor(message: string, code: string) {
+  constructor(message: string, code: string, detalle: Record<string, unknown> = {}) {
     super(message)
     this.name = "BotApiError"
     this.code = code
+    this.detalle = detalle
   }
 }
 
@@ -34,6 +38,17 @@ const MENSAJES_ERROR: Record<string, string> = {
   plantilla_no_encontrada: "Esa multimedia ya no existe.",
   whatsapp_send_failed: "WhatsApp rechazó el envío. Revisa los logs del bot.",
   red: "No se pudo conectar con el bot. Revisa que esté en línea.",
+  // Bandeja omnicanal.
+  human_agent_no_aprobado:
+    "Pasaron más de 24 horas y Meta todavía no aprobó la función Human Agent para esta app — no se puede retomar por este canal.",
+  comentario_no_admite_privado: "Ese comentario ya no admite respuesta privada (ya se usó, o pasaron más de 7 días).",
+  comentario_no_encontrado: "Ese comentario ya no existe.",
+  meta_send_failed: "Meta rechazó el envío. Revisa los logs del bot.",
+  meta_api_failed: "No se pudo completar la acción en Meta. Revisa los logs del bot.",
+  canal_no_configurado: "Ese canal todavía no está configurado en el bot.",
+  canal_no_soportado: "Esa acción no está disponible para este canal.",
+  telefono_en_uso: "Ese número ya es de otra clienta.",
+  telefono_invalido: "Ese número no parece válido.",
 }
 
 async function llamar<T>(path: string, init: RequestInit): Promise<T> {
@@ -60,7 +75,7 @@ async function llamar<T>(path: string, init: RequestInit): Promise<T> {
     // (p. ej. la ventana de 24h cerrada); si no, se traduce el código.
     const texto =
       typeof json.mensaje === "string" ? json.mensaje : (MENSAJES_ERROR[code] ?? "No se pudo completar la acción.")
-    throw new BotApiError(texto, code)
+    throw new BotApiError(texto, code, json)
   }
   return json as T
 }
@@ -135,4 +150,49 @@ export function actualizarEstadoCita(citaId: string, estado: CitaEstado) {
 /** Mismo motivo que actualizarEstadoCita: si el bloqueo vino de Calendar, hay que borrar el evento también. */
 export function eliminarBloqueo(bloqueoId: string) {
   return post<Record<string, never>>(`/admin/bloqueos/${bloqueoId}/eliminar`, {})
+}
+
+/**
+ * Responder un comentario de Facebook/Instagram. En público devuelve el
+ * mensaje nuevo (para pintar la burbuja sin esperar el realtime); en
+ * privado devuelve a qué conversación de DM saltar.
+ */
+export type RespuestaComentarioResultado = { mensaje: Mensaje } | { conversacionDmId: string }
+
+export function responderComentario(mensajeId: string, params: { modo: "publico" | "privado"; texto: string }) {
+  return post<RespuestaComentarioResultado>(`/admin/comentarios/${mensajeId}/responder`, params)
+}
+
+/** Un borrador de respuesta — nunca envía ni guarda nada solo, el staff decide qué hacer con el texto. */
+export function sugerirRespuesta(conversacionId: string) {
+  return post<{ texto: string }>("/admin/ia/sugerencia", { conversacionId })
+}
+
+/**
+ * Misma lógica que la tool guardar_datos_contacto del bot: si el teléfono ya
+ * es de otra clienta, el error `telefono_en_uso` trae `clienteExistente` en
+ * `BotApiError.detalle` — reintentar con `fusionar: true` completa la fusión.
+ */
+export function guardarTelefonoCliente(clienteId: string, telefono: string, fusionar?: boolean) {
+  return post<{ clienteId: string; fusionado: boolean }>(`/admin/clientes/${clienteId}/telefono`, {
+    telefono,
+    ...(fusionar ? { fusionar: true } : {}),
+  })
+}
+
+export type EstadoCanales = {
+  whatsapp: { configurado: boolean; numero: string | null }
+  messenger: { configurado: boolean; pagina: string | null; suscrito: boolean; tokenVence: string | null }
+  instagram: { configurado: boolean; cuenta: string | null; username: string | null }
+  /** Aprobación de Meta a nivel de app, no un interruptor de negocio — se necesita para calcular el aviso de ventana. */
+  metaHumanAgentAprobado: boolean
+}
+
+export function estadoCanales() {
+  return get<EstadoCanales>("/admin/canales/estado")
+}
+
+/** Cosmético del lado de Meta (sender_action: mark_seen); en WhatsApp no hace nada. */
+export function marcarVisto(conversacionId: string) {
+  return post<Record<string, never>>(`/admin/conversaciones/${conversacionId}/visto`, {})
 }
