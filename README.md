@@ -1,8 +1,8 @@
 # Panel Aura Studio
 
 Panel de administración de [aurastudio.pe](https://aurastudio.pe): reservas, caja,
-conversaciones de WhatsApp y el contenido del sitio. Vite + React + Tailwind v4
-sobre Supabase.
+la bandeja omnicanal (WhatsApp, Messenger, Instagram y comentarios) y el
+contenido del sitio. Vite + React + Tailwind v4 sobre Supabase.
 
 ```bash
 cp .env.example .env    # completar con los datos del proyecto Supabase
@@ -78,6 +78,44 @@ bien/mal y nunca se usan como «serie 4».
 
 Una sola caja puede estar abierta a la vez; lo garantiza un índice parcial en la
 base, no la interfaz.
+
+## Bandeja omnicanal
+
+`src/pages/CRM/` — WhatsApp, Messenger, Instagram y comentarios de
+Facebook/Instagram en una sola bandeja. El navegador nunca habla directo con
+Meta: todo envío pasa por el bot (`src/lib/botApi.ts`), que es quien guarda
+el token de página.
+
+- **`index.tsx`**: filtros de canal (`Segmented`), estado (`Tabs`: sin
+  responder / mías / sin asignar / con humano / cerradas) y etapa (`Select`),
+  persistidos en `localStorage`. Un comentario y un DM de la misma persona
+  son conversaciones separadas a propósito — un comentario es público, un DM
+  no, y mezclarlos en un solo hilo confundiría cuál responder dónde.
+- **`ChatThread.tsx`**: burbujas de mensaje, nota interna (ámbar, nunca se
+  envía), sistema (línea centrada) y comentario (con link a la publicación y
+  botones de responder en público/privado). El compositor cambia de aviso
+  según el canal: WhatsApp avisa la ventana de 24h + plantillas; Meta suma el
+  rango 24h-7 días con la etiqueta `Human Agent` cuando
+  `metaHumanAgentAprobado` viene en true desde `/admin/canales/estado`.
+- **`ClientPanel.tsx`**: identidades por canal de la clienta (una persona
+  puede tener varias: número de WhatsApp, PSID de Messenger, IGSID de
+  Instagram, y otra distinta con la que comenta), teléfono editable cuando
+  llegó por un canal que no lo da, fusión de clientas duplicadas, etapa del
+  embudo y actividad (`eventos_conversacion`).
+- **`lib/avisos.tsx`** (`useAvisosBandeja`/`AvisosProvider`, montado en
+  `AppShell`): badge de "sin responder" siempre activo; toast, sonido y
+  `Notification` del navegador requieren que el staff los prenda con
+  "Activar avisos" — pedir el permiso sin que lo pidan primero suele
+  terminar bloqueado por el navegador.
+- **`pages/Canales/`**: estado y salud de cada canal (lo que reporta el bot)
+  más los interruptores de la tabla `canales` — apagar la IA de un canal deja
+  los mensajes nuevos en la bandeja como "sin responder" en vez de
+  contestarlos solos. CRUD de respuestas rápidas (`/atajo` en el
+  compositor, con variables `{{nombre}}`/`{{sede}}`/`{{profesional}}`).
+- **`pages/CRM/Metricas.tsx`**: pestaña Atención (`metricas_bandeja` RPC:
+  primera respuesta, embudo, ranking por agente) y Contenido
+  (`metricas_contenido_diarias`: alcance, impresiones y seguidores que el bot
+  guarda una vez al día — ver `bot/src/meta/insights.ts`).
 
 ## Migraciones
 
