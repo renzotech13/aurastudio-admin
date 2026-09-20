@@ -7,7 +7,14 @@ import { useEquipo } from "@/lib/equipo"
 import { useAuth } from "@/lib/auth"
 import { LIMA_OFFSET, money, precioNumerico } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { METODOS_PAGO, METODO_PAGO_LABEL, type MetodoPago, type Service } from "@/lib/types"
+import {
+  METODOS_PAGO,
+  METODO_PAGO_LABEL,
+  type MetodoPago,
+  type Service,
+  type ServiceCategory,
+} from "@/lib/types"
+import { CategoryIcon } from "@/lib/categoryIcons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -49,6 +56,9 @@ export default function WalkInDialog({
   const { session } = useAuth()
   const { sedes, profesionales } = useEquipo()
   const [servicios, setServicios] = useState<Service[]>([])
+  const [categorias, setCategorias] = useState<ServiceCategory[]>([])
+  // "todos" o el id de una categoría; igual que los chips del modal de la web.
+  const [filtroCategoria, setFiltroCategoria] = useState<string>("todos")
   const [asignaciones, setAsignaciones] = useState<{ profesional_id: string; sede_id: string }[]>([])
   const [especialidades, setEspecialidades] = useState<{ profesional_id: string; servicio_id: string }[]>([])
   const [sesionesAbiertas, setSesionesAbiertas] = useState<{ id: string; sede_id: string | null }[]>([])
@@ -79,6 +89,7 @@ export default function WalkInDialog({
     setNombre("")
     setTelefono("")
     setServicioIds([])
+    setFiltroCategoria("todos")
     setProfesionalId("")
     setInicio(ahoraEnLima())
     setEstado("completada")
@@ -90,11 +101,13 @@ export default function WalkInDialog({
 
     Promise.all([
       supabase.from("services").select("*").eq("active", true).order("sort_order"),
+      supabase.from("service_categories").select("*").eq("active", true).order("sort_order"),
       supabase.from("profesional_sedes").select("profesional_id,sede_id"),
       supabase.from("profesional_servicios").select("profesional_id,servicio_id"),
       supabase.from("caja_sesiones").select("id,sede_id").eq("estado", "abierta"),
-    ]).then(([svc, asig, esp, cajas]) => {
+    ]).then(([svc, cats, asig, esp, cajas]) => {
       setServicios((svc.data ?? []) as Service[])
+      setCategorias((cats.data ?? []) as ServiceCategory[])
       setAsignaciones(
         (asig.data ?? []).map((a) => ({
           profesional_id: a.profesional_id as string,
@@ -158,6 +171,32 @@ export default function WalkInDialog({
   useEffect(() => {
     if (profesionalId && !elegibles.some((p) => p.id === profesionalId)) setProfesionalId("")
   }, [elegibles, profesionalId])
+
+  // Solo las categorías que tienen servicios activos: una vacía sería un tab
+  // que no lleva a nada.
+  const categoriasConServicios = useMemo(
+    () => categorias.filter((c) => servicios.some((s) => s.category_id === c.id)),
+    [categorias, servicios],
+  )
+
+  // Las selecciones viven en servicioIds, no en el tab: cambiar de categoría
+  // no puede perder lo ya elegido, y cada tab avisa cuántos lleva.
+  const elegidosPorCategoria = useMemo(() => {
+    const cuenta = new Map<string, number>()
+    for (const id of servicioIds) {
+      const cat = servicios.find((x) => x.id === id)?.category_id
+      if (cat) cuenta.set(cat, (cuenta.get(cat) ?? 0) + 1)
+    }
+    return cuenta
+  }, [servicioIds, servicios])
+
+  const serviciosVisibles = useMemo(
+    () =>
+      filtroCategoria === "todos"
+        ? servicios
+        : servicios.filter((s) => s.category_id === filtroCategoria),
+    [servicios, filtroCategoria],
+  )
 
   const duracionTotal = useMemo(
     () =>
@@ -370,8 +409,41 @@ export default function WalkInDialog({
 
           <div className="flex flex-col gap-2">
             <Label>Servicios</Label>
-            <div className="max-h-52 overflow-y-auto rounded-xl border border-border p-2">
-              {servicios.map((s) => (
+            <div
+              role="tablist"
+              aria-label="Categoría de servicio"
+              className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1"
+            >
+              {[{ id: "todos", title: "Todos", icon: "" }, ...categoriasConServicios].map((c) => {
+                const activo = filtroCategoria === c.id
+                const n = c.id === "todos" ? servicioIds.length : (elegidosPorCategoria.get(c.id) ?? 0)
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={activo}
+                    onClick={() => setFiltroCategoria(c.id)}
+                    className={cn(
+                      "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition-colors",
+                      activo
+                        ? "border-gold bg-gold/15 text-gold-deep dark:text-gold"
+                        : "border-border text-muted-foreground hover:border-gold/50",
+                    )}
+                  >
+                    {c.id !== "todos" ? <CategoryIcon name={c.icon} className="size-3.5" /> : null}
+                    {c.title}
+                    {n > 0 ? (
+                      <span className="tnum rounded-full bg-gold px-1.5 text-[10.5px] font-medium leading-4 text-[#33200f]">
+                        {n}
+                      </span>
+                    ) : null}
+                  </button>
+                )
+              })}
+            </div>
+            <div role="tabpanel" className="max-h-52 overflow-y-auto rounded-xl border border-border p-2">
+              {serviciosVisibles.map((s) => (
                 <label key={s.id} className="flex items-center gap-2 px-1 py-1 text-[12.5px]">
                   <input
                     type="checkbox"
