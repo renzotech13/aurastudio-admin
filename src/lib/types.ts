@@ -633,3 +633,27 @@ export type MovimientoCaja = {
   created_at: string
   updated_at: string
 }
+
+// --- Revisión de las guías gratuitas (migración 0019) ---
+
+export type AfirmacionRevisada = { texto: string; estado: "ok" | "corregir"; correccion?: string }
+
+/** Lo que guarda `guia_revisiones.respuestas`: el TEXTO de cada pregunta viaja con la respuesta. */
+export type RespuestasRevision = {
+  version: 1
+  preguntas: { texto: string; respuesta: string }[]
+  afirmaciones: AfirmacionRevisada[]
+  comentario?: string
+}
+
+export type GuiaRevisionFila = {
+  id: string
+  guia: string
+  revisor: string
+  respuestas: RespuestasRevision
+  atendida: boolean
+  token_etiqueta: string | null
+  created_at: string
+}
+
+export type RevisionToken = { token: string; etiqueta: string; activo: boolean; created_at: string }

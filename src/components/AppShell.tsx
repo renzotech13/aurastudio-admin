@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom"
 import {
   CalendarCheck2,
   CalendarClock,
+  ClipboardCheck,
   Images,
   LayoutDashboard,
   LogOut,
@@ -45,6 +46,7 @@ const GRUPOS = [
       { to: "/servicios", label: "Servicios", icon: Sparkles },
       { to: "/productos", label: "Productos", icon: ShoppingBag },
       { to: "/multimedia", label: "Multimedia", icon: Images },
+      { to: "/revision-guias", label: "Revisión de guías", icon: ClipboardCheck },
     ],
   },
 ]

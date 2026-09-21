@@ -12,6 +12,8 @@ import Metricas from "@/pages/CRM/Metricas"
 import Canales from "@/pages/Canales"
 import Disponibilidad from "@/pages/Disponibilidad"
 import Multimedia from "@/pages/Multimedia"
+import RevisionGuias from "@/pages/RevisionGuias"
+import RevisionPublica from "@/pages/RevisionPublica"
 import AppShell from "@/components/AppShell"
 
 function Gate() {
@@ -35,6 +37,7 @@ function Gate() {
         <Route path="/conversaciones/metricas" element={<Metricas />} />
         <Route path="/canales" element={<Canales />} />
         <Route path="/multimedia" element={<Multimedia />} />
+        <Route path="/revision-guias" element={<RevisionGuias />} />
         <Route path="*" element={<Navigate to="/resumen" replace />} />
       </Routes>
     </AppShell>
@@ -44,9 +47,18 @@ function Gate() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Gate />
-      </AuthProvider>
+      <Routes>
+        {/* Pública, sin sesión: la abre alguien del salón desde su celular con un enlace con token. */}
+        <Route path="/revision/:token" element={<RevisionPublica />} />
+        <Route
+          path="*"
+          element={
+            <AuthProvider>
+              <Gate />
+            </AuthProvider>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   )
 }
