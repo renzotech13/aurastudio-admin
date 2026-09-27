@@ -15,7 +15,9 @@ export default function Login() {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
-    const { error } = await signIn(email, password)
+    // Las cuentas del equipo son nombre@aurastudio.pe: basta escribir «laura».
+    const usuario = email.trim().toLowerCase()
+    const { error } = await signIn(usuario.includes("@") ? usuario : `${usuario}@aurastudio.pe`, password)
     setSubmitting(false)
     if (error) setError("No se pudo iniciar sesión. Revisa el correo y la contraseña.")
   }
@@ -43,7 +45,7 @@ export default function Login() {
           </span>
           <h1 className="aura-display text-[22px] text-[#f2ebdd]">Aura Studio</h1>
           <p className="mt-2 text-[11px] tracking-[0.22em] text-[#f2ebdd]/45 uppercase">
-            Panel de administración
+            Panel del equipo
           </p>
         </div>
 
@@ -53,12 +55,17 @@ export default function Login() {
         >
           <div className="flex flex-col gap-2">
             <Label htmlFor="email" className="text-[#f2ebdd]/80">
-              Correo
+              Usuario o correo
             </Label>
             <Input
               id="email"
-              type="email"
+              type="text"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               autoComplete="username"
+              placeholder="nombre@aurastudio.pe"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { CalendarCheck2, Sparkles, TrendingUp, UserPlus } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
@@ -107,6 +107,10 @@ export default function Resumen() {
     return rango.dias.map((d) => ({ dia: d, valores: mapa.get(d)! }))
   }, [citas, rango.dias])
 
+  // Dentro de la app móvil (/app) «Caja» es una pestaña de la app, no la
+  // página del panel de escritorio.
+  const rutaCaja = useLocation().pathname.startsWith("/app") ? "/app/caja" : "/caja"
+
   const completadas = citas.filter((c) => c.estado === "completada").length
   const noAsistio = citas.filter((c) => c.estado === "no_asistio").length
 
@@ -117,7 +121,7 @@ export default function Resumen() {
         titulo="Resumen"
         descripcion="Cómo va el salón: dinero, agenda y clientas, en el mismo rango."
         acciones={
-          <Button variant="gold" render={<Link to="/caja" />}>
+          <Button variant="gold" render={<Link to={rutaCaja} />}>
             <TrendingUp /> Ir a caja
           </Button>
         }

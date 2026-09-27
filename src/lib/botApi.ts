@@ -27,7 +27,7 @@ const MENSAJES_ERROR: Record<string, string> = {
   sin_sesion: "Tu sesión expiró. Vuelve a iniciar sesión.",
   missing_token: "Tu sesión expiró. Vuelve a iniciar sesión.",
   invalid_token: "Tu sesión expiró. Vuelve a iniciar sesión.",
-  forbidden: "Tu usuario no tiene permisos de staff.",
+  forbidden: "Tu usuario no tiene permiso para esta acción.",
   conversacion_no_encontrada: "Esa conversación ya no existe.",
   conflicto_horario: "Esa profesional ya tiene una cita a esa hora. Elige otra hora u otra profesional.",
   fuera_de_politica: "Esa hora cae fuera del horario de atención del local.",
@@ -49,6 +49,11 @@ const MENSAJES_ERROR: Record<string, string> = {
   canal_no_soportado: "Esa acción no está disponible para este canal.",
   telefono_en_uso: "Ese número ya es de otra clienta.",
   telefono_invalido: "Ese número no parece válido.",
+  // App de la profesional.
+  caja_cerrada: "No hay una caja abierta en tu local. Avisa a recepción para que la abra.",
+  servicio_no_permitido: "Ese servicio no está entre los que haces tú.",
+  fuera_de_rango: "Solo puedes anotar atenciones de los últimos dos días o de las próximas 24 horas.",
+  profesional_inactiva: "Tu cuenta ya no está activa. Habla con el administrador.",
 }
 
 async function llamar<T>(path: string, init: RequestInit): Promise<T> {
@@ -195,4 +200,38 @@ export function estadoCanales() {
 /** Cosmético del lado de Meta (sender_action: mark_seen); en WhatsApp no hace nada. */
 export function marcarVisto(conversacionId: string) {
   return post<Record<string, never>>(`/admin/conversaciones/${conversacionId}/visto`, {})
+}
+
+// ─── Lo que hace una profesional desde su app (rutas /equipo/*) ─────────────
+// Son distintas de las /admin/* a propósito: el bot les exige el rol
+// `profesional` y filtra todo por SU id. Las respuestas son mínimas — no traen
+// el teléfono ni las notas de la clienta.
+
+export function marcarCitaComoProfesional(citaId: string, estado: CitaEstado) {
+  return post<{ cita: { id: string; estado: CitaEstado } }>(`/equipo/citas/${citaId}/estado`, { estado })
+}
+
+export function registrarAtencionProfesional(params: {
+  cliente_id?: string
+  telefono?: string
+  nombre?: string
+  servicio_ids: string[]
+  sede_id: string
+  inicio: string
+  estado: "confirmada" | "completada"
+  comentario?: string
+}) {
+  return post<{
+    citas: { id: string; inicio_utc: string; fin_utc: string; estado: CitaEstado }[]
+    cliente: { id: string; nombre: string | null }
+  }>("/equipo/atencion", params)
+}
+
+export function registrarVentaProfesional(params: {
+  sede_id: string
+  concepto: string
+  monto: number
+  metodo: string
+}) {
+  return post<{ movimiento: { id: string; concepto: string; monto: number } }>("/equipo/ventas", params)
 }

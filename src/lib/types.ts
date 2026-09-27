@@ -657,3 +657,10 @@ export type GuiaRevisionFila = {
 }
 
 export type RevisionToken = { token: string; etiqueta: string; activo: boolean; created_at: string }
+
+/**
+ * Rol de la cuenta (profiles.role). `staff` es el administrador: ve y gestiona
+ * todo. `profesional` ve solo lo suyo, desde la app móvil. `alumna` es el rol
+ * por defecto de una cuenta nueva y no da acceso a nada.
+ */
+export type ProfileRole = "staff" | "alumna" | "profesional"

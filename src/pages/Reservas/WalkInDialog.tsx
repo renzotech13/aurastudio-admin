@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { registrarWalkIn, BotApiError } from "@/lib/botApi"
 import { useEquipo } from "@/lib/equipo"
 import { useAuth } from "@/lib/auth"
+import { duracionMinutos } from "@/lib/agenda"
 import { LIMA_OFFSET, money, precioNumerico } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import {
@@ -48,10 +49,12 @@ export default function WalkInDialog({
   open,
   onOpenChange,
   onGuardado,
+  titulo = "Registrar atención sin reserva",
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onGuardado: () => void
+  titulo?: string
 }) {
   const { session } = useAuth()
   const { sedes, profesionales } = useEquipo()
@@ -202,7 +205,7 @@ export default function WalkInDialog({
     () =>
       servicioIds.reduce((suma, id) => {
         const s = servicios.find((x) => x.id === id)
-        return suma + (s ? Number(s.duration.match(/\d+/)?.[0] ?? 0) : 0)
+        return suma + duracionMinutos(s?.duration)
       }, 0),
     [servicioIds, servicios],
   )
@@ -315,7 +318,7 @@ export default function WalkInDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Registrar atención sin reserva</DialogTitle>
+          <DialogTitle>{titulo}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={guardar} className="flex flex-col gap-5">

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { NavLink, useLocation } from "react-router-dom"
+import { Link, NavLink, useLocation } from "react-router-dom"
 import {
   CalendarCheck2,
   CalendarClock,
@@ -11,6 +11,7 @@ import {
   MessagesSquare,
   Radio,
   ShoppingBag,
+  Smartphone,
   Sparkles,
   Users,
   Wallet,
@@ -152,6 +153,13 @@ function AppShellInterno({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="border-t border-[rgba(247,243,234,0.1)] p-3">
+          <Link
+            to="/app"
+            className="mb-2 flex items-center gap-2 rounded-full px-3 py-2 text-[12.5px] text-[#f2ebdd]/75 transition-colors hover:bg-[rgba(247,243,234,0.08)] hover:text-[#f2ebdd] focus-visible:ring-2 focus-visible:ring-gold/50 focus-visible:outline-none"
+          >
+            <Smartphone className="size-4 text-gold/70" />
+            Abrir la app móvil
+          </Link>
           <div className="mb-2 truncate px-3 text-[11px] text-[#f2ebdd]/50">
             {session?.user.email}
           </div>

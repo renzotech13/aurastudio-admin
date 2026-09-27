@@ -1,0 +1,17 @@
+{
+  "name": "Aura Studio — Equipo",
+  "short_name": "Aura",
+  "description": "Agenda, clientas y caja de Aura Studio.",
+  "lang": "es-PE",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#241a12",
+  "theme_color": "#241a12",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

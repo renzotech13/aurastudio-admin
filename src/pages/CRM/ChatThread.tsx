@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Bot,
   ChevronDown,
+  ChevronLeft,
   ExternalLink,
   Loader2,
   Paperclip,
@@ -188,9 +189,12 @@ type ModoCompositor = "responder" | "nota"
 export default function ChatThread({
   conversacion,
   staff,
+  onVolver,
 }: {
   conversacion: ConversacionResumen | null
   staff: Profile[]
+  /** Si viene, el hilo se muestra como pantalla propia (app móvil) con flecha para volver. */
+  onVolver?: () => void
 }) {
   const { session } = useAuth()
   const { nombreSede, nombreProfesional } = useEquipo()
@@ -459,6 +463,15 @@ export default function ChatThread({
     <section className="flex min-w-0 flex-1 flex-col">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3">
         <div className="flex min-w-0 items-center gap-2">
+          {onVolver && (
+            <button
+              onClick={onVolver}
+              aria-label="Volver a los chats"
+              className="-ml-1.5 flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+          )}
           <CanalIcon canal={conversacion.canal} className="size-5 text-[11px]" />
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold">
