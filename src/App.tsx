@@ -66,6 +66,15 @@ function useEstadoAcceso() {
   return { vista: null, role }
 }
 
+/**
+ * Un celular (no una tablet) va directo a la app: el panel de escritorio
+ * tiene sidebar fija y tablas anchas, inusable con el pulgar. 640px deja del
+ * lado del panel a la tablet del local, que es donde sí se quiere.
+ */
+function esCelular(): boolean {
+  return window.matchMedia("(max-width: 639px)").matches
+}
+
 /** Panel de escritorio: solo administración. La profesional va a su app. */
 function Gate() {
   const { role, profesionalId } = useAuth()
@@ -76,6 +85,7 @@ function Gate() {
     return profesionalId ? <Navigate to="/app" replace /> : <SinAcceso />
   }
   if (role !== "staff") return <SinAcceso />
+  if (esCelular()) return <Navigate to="/app" replace />
 
   return (
     <AppShell>
