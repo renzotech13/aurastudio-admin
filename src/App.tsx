@@ -23,6 +23,7 @@ import AppVender from "@/pages/App/Vender"
 import AppMas from "@/pages/App/Mas"
 import AppPorCerrar from "@/pages/App/PorCerrar"
 import AppDirectorio from "@/pages/App/Directorio"
+import AppReactivacion from "@/pages/App/Reactivacion"
 import AppShell from "@/components/AppShell"
 import AppMovilShell from "@/components/AppMovilShell"
 import { Button } from "@/components/ui/button"
@@ -132,6 +133,8 @@ function GateApp() {
           <Route path="agenda" element={<AppAgenda modo="admin" />} />
           <Route path="chats" element={<AppChats modo="admin" />} />
           <Route path="caja" element={<Caja />} />
+          <Route path="clientas" element={<AppDirectorio />} />
+          <Route path="reactivacion" element={<AppReactivacion />} />
           <Route path="mas" element={<AppMas />} />
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>

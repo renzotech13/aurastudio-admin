@@ -2,6 +2,7 @@ import { Link } from "react-router-dom"
 import {
   CalendarCheck2,
   CalendarClock,
+  BellRing,
   ChevronRight,
   Images,
   Radio,
@@ -21,6 +22,8 @@ const GRUPOS: { titulo: string; enlaces: Enlace[] }[] = [
     titulo: "Operación",
     enlaces: [
       { to: "/reservas", label: "Reservas", detalle: "Todas las citas, filtros y comprobantes", icon: CalendarCheck2 },
+      { to: "/app/clientas", label: "Clientas", detalle: "Historial, servicios y a quién no escribirle", icon: Users },
+      { to: "/app/reactivacion", label: "Reactivación", detalle: "Invitar a volver a quien ya se atendió", icon: BellRing },
       { to: "/profesionales", label: "Profesionales", detalle: "Equipo, servicios y locales", icon: Users },
       { to: "/disponibilidad", label: "Disponibilidad", detalle: "Horarios y bloqueos", icon: CalendarClock },
       { to: "/canales", label: "Canales", detalle: "Estado de las conexiones del bot", icon: Radio },

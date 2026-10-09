@@ -53,6 +53,7 @@ const MENSAJES_ERROR: Record<string, string> = {
   caja_cerrada: "No hay una caja abierta en tu local. Avisa a recepción para que la abra.",
   servicio_no_permitido: "Ese servicio no está entre los que haces tú.",
   solo_administracion: "Eso lo registra la administradora o la profesional que atendió.",
+  meta_rechazo: "Meta no dejó enviar la plantilla. Casi siempre es que todavía no está aprobada o el nombre no coincide.",
   fecha_pasada: "Una reserva tiene que ser desde ahora en adelante. Para una atención que ya pasó, avisa a recepción.",
   fuera_de_rango: "Solo puedes anotar atenciones de los últimos dos días o de las próximas 24 horas.",
   profesional_inactiva: "Tu cuenta ya no está activa. Habla con el administrador.",
@@ -197,6 +198,14 @@ export type EstadoCanales = {
 
 export function estadoCanales() {
   return get<EstadoCanales>("/admin/canales/estado")
+}
+
+/**
+ * Manda la plantilla de una regla de reactivación a UN número, con datos de
+ * ejemplo: sirve para ver que Meta ya la aprobó antes de prender el envío.
+ */
+export function probarPlantillaReactivacion(reglaId: string, telefono: string) {
+  return post<{ ok: true }>("/admin/reactivacion/prueba", { regla_id: reglaId, telefono })
 }
 
 /** Cosmético del lado de Meta (sender_action: mark_seen); en WhatsApp no hace nada. */

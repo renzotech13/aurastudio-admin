@@ -1,17 +1,22 @@
 import { useEffect, useState } from "react"
-import { PhoneCall, Search, Users } from "lucide-react"
+import { toast } from "sonner"
+import { ChevronDown, PhoneCall, Search, Users } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
 import { fechaCorta } from "@/lib/format"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import HistorialClienta from "@/components/HistorialClienta"
+import { cn } from "@/lib/utils"
 
 type Cliente = {
   id: string
   nombre: string | null
   telefono: string | null
   notas: string | null
+  no_contactar: boolean
   created_at: string
 }
 
@@ -26,6 +31,7 @@ export default function Directorio() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(false)
   const [intento, setIntento] = useState(0)
+  const [abierta, setAbierta] = useState<string | null>(null)
 
   useEffect(() => {
     let activo = true
@@ -33,7 +39,7 @@ export default function Directorio() {
     const id = setTimeout(async () => {
       setCargando(true)
       const termino = buscar.trim().replace(/[,()%]/g, " ")
-      let consulta = supabase.from("clientes").select("id,nombre,telefono,notas,created_at").order("created_at", { ascending: false }).limit(40)
+      let consulta = supabase.from("clientes").select("id,nombre,telefono,notas,no_contactar,created_at").order("created_at", { ascending: false }).limit(40)
       if (termino.length >= 2) consulta = consulta.or(`nombre.ilike.%${termino}%,telefono.ilike.%${termino}%`)
       const { data, error: fallo } = await consulta
       if (!activo) return
@@ -119,6 +125,36 @@ export default function Directorio() {
                 </div>
                 {c.notas?.trim() ? (
                   <p className="mt-2 rounded-lg bg-gold/10 px-2.5 py-1.5 text-[12.5px] leading-snug whitespace-pre-line">{c.notas}</p>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => setAbierta(abierta === c.id ? null : c.id)}
+                  aria-expanded={abierta === c.id}
+                  className="mt-2 flex items-center gap-1 text-[12.5px] text-gold-deep dark:text-gold"
+                >
+                  Historial
+                  <ChevronDown className={cn("size-3.5 transition-transform", abierta === c.id && "rotate-180")} />
+                </button>
+                {abierta === c.id ? (
+                  <div className="mt-2 flex flex-col gap-3 border-t border-border pt-3">
+                    <HistorialClienta clienteId={c.id} />
+                    <label className="flex items-center justify-between gap-3 text-[12.5px]">
+                      <span>
+                        No enviarle promociones ni recordatorios para volver
+                        <span className="block text-[11.5px] text-muted-foreground">Úsalo si ella lo pidió.</span>
+                      </span>
+                      <Switch
+                        checked={c.no_contactar}
+                        onCheckedChange={async (v) => {
+                          const { error: fallo } = await supabase.from("clientes").update({ no_contactar: v }).eq("id", c.id)
+                          if (fallo) return toast.error("No se pudo guardar.")
+                          setClientas((previas) => previas.map((x) => (x.id === c.id ? { ...x, no_contactar: v } : x)))
+                        }}
+                        aria-label="No contactar"
+                      />
+                    </label>
+                  </div>
                 ) : null}
               </li>
             )
