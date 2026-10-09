@@ -19,6 +19,22 @@ function avisosGuardadosActivos(): boolean {
   }
 }
 
+/**
+ * La bandeja vive en dos lugares: /conversaciones (panel de escritorio) y
+ * /app/chats (app móvil). Los avisos abren la que corresponde a donde esté
+ * la persona: llevar a alguien que usa la app al panel de escritorio, en un
+ * celular, lo deja en una pantalla que no puede usar.
+ */
+function enApp(): boolean {
+  return window.location.pathname.startsWith("/app")
+}
+function rutaBandeja(): string {
+  return enApp() ? "/app/chats" : "/conversaciones"
+}
+function enBandeja(): boolean {
+  return window.location.pathname === rutaBandeja()
+}
+
 function conversacionAbiertaId(): string | null {
   try {
     const crudo = localStorage.getItem(BANDEJA_KEY)
@@ -95,7 +111,7 @@ function useAvisosBandejaInterno() {
       // vista: no hace falta interrumpir, el mensaje ya aparece en el hilo.
       if (
         document.visibilityState === "visible" &&
-        window.location.pathname === "/conversaciones" &&
+        enBandeja() &&
         conversacionAbiertaId() === mensaje.conversacion_id
       ) {
         return
@@ -119,16 +135,16 @@ function useAvisosBandejaInterno() {
 
       toast.message(`${nombre} · ${canalTexto}`, {
         description: preview,
-        action: { label: "Abrir", onClick: () => navigate("/conversaciones") },
+        action: { label: "Abrir", onClick: () => navigate(rutaBandeja()) },
       })
       reproducirSonido()
 
       if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-        if (document.visibilityState === "hidden" || window.location.pathname !== "/conversaciones") {
+        if (document.visibilityState === "hidden" || !enBandeja()) {
           const notif = new Notification(`${nombre} (${canalTexto})`, { body: preview })
           notif.onclick = () => {
             window.focus()
-            navigate("/conversaciones")
+            navigate(rutaBandeja())
           }
         }
       }
@@ -140,13 +156,13 @@ function useAvisosBandejaInterno() {
         const detalle = evento.detalle as { de?: string | null; a?: string | null }
         if (!mio || detalle.a !== mio || detalle.a === detalle.de) return
         toast.message("Te asignaron una conversación", {
-          action: { label: "Abrir", onClick: () => navigate("/conversaciones") },
+          action: { label: "Abrir", onClick: () => navigate(rutaBandeja()) },
         })
         reproducirSonido()
       } else if (evento.tipo === "escalada") {
         // Relevante para cualquiera en línea: todavía no tiene dueño.
         toast.message("Una clienta pidió hablar con una persona", {
-          action: { label: "Abrir", onClick: () => navigate("/conversaciones") },
+          action: { label: "Abrir", onClick: () => navigate(rutaBandeja()) },
         })
         reproducirSonido()
       }

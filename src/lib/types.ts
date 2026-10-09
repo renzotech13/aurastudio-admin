@@ -663,4 +663,4 @@ export type RevisionToken = { token: string; etiqueta: string; activo: boolean; 
  * todo. `profesional` ve solo lo suyo, desde la app móvil. `alumna` es el rol
  * por defecto de una cuenta nueva y no da acceso a nada.
  */
-export type ProfileRole = "staff" | "alumna" | "profesional"
+export type ProfileRole = "staff" | "alumna" | "profesional" | "vendedor"

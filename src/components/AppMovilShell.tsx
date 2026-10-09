@@ -9,6 +9,7 @@ import {
   LogOut,
   Monitor,
   PenLine,
+  PhoneCall,
   Plus,
   ShoppingBag,
   Users,
@@ -31,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export type ModoApp = "admin" | "profesional"
+export type ModoApp = "admin" | "profesional" | "vendedor"
 
 /** Aviso a la agenda de que se guardó una cita desde el botón central. */
 export const EVENTO_CITA_GUARDADA = "aura:cita-guardada"
@@ -52,6 +53,19 @@ const ITEMS: Record<ModoApp, { izquierda: Item[]; derecha: Item[] }> = {
       { to: "/app/mas", label: "Más", icon: Ellipsis },
     ],
   },
+  // El vendedor atiende a quienes escriben y les agenda la cita: chats, a quién
+  // falta cerrar, las reservas de todo el equipo y el directorio de clientas.
+  // Sin caja, sin ventas, sin métricas.
+  vendedor: {
+    izquierda: [
+      { to: "/app/chats", label: "Chats", icon: MessageCircle },
+      { to: "/app/por-cerrar", label: "Por cerrar", icon: PhoneCall },
+    ],
+    derecha: [
+      { to: "/app/reservas", label: "Reservas", icon: CalendarDays },
+      { to: "/app/clientas", label: "Clientas", icon: Users },
+    ],
+  },
   profesional: {
     izquierda: [
       { to: "/app", label: "Agenda", icon: CalendarDays, end: true },
@@ -65,10 +79,10 @@ const ITEMS: Record<ModoApp, { izquierda: Item[]; derecha: Item[] }> = {
 }
 
 export default function AppMovilShell({ modo, children }: { modo: ModoApp; children: ReactNode }) {
-  // Solo el administrador recibe los avisos de mensajes nuevos, igual que en
-  // el panel de escritorio; la profesional no tiene bandeja.
+  // La administradora y el vendedor reciben los avisos de mensajes nuevos, igual
+  // que en el panel de escritorio; la profesional no tiene bandeja.
   const cuerpo = <ShellInterno modo={modo}>{children}</ShellInterno>
-  return modo === "admin" ? <AvisosProvider>{cuerpo}</AvisosProvider> : cuerpo
+  return modo === "profesional" ? cuerpo : <AvisosProvider>{cuerpo}</AvisosProvider>
 }
 
 function ShellInterno({ modo, children }: { modo: ModoApp; children: ReactNode }) {
@@ -78,8 +92,9 @@ function ShellInterno({ modo, children }: { modo: ModoApp; children: ReactNode }
   const [contrasena, setContrasena] = useState(false)
 
   const yo = profesionales.find((p) => p.id === profesionalId)
-  const nombre = modo === "profesional" ? (yo?.nombre ?? "Profesional") : "Administrador"
-  const inicial = nombre.charAt(0).toUpperCase()
+  const nombre =
+    modo === "profesional" ? (yo?.nombre ?? "Profesional") : modo === "vendedor" ? "Ventas" : "Administrador"
+  const inicial = (modo === "vendedor" ? (session?.user.email ?? nombre) : nombre).charAt(0).toUpperCase()
   const { izquierda, derecha } = ITEMS[modo]
 
   return (
@@ -98,7 +113,7 @@ function ShellInterno({ modo, children }: { modo: ModoApp; children: ReactNode }
             <span className="leading-tight">
               <span className="block font-heading text-[12.5px] tracking-[0.12em] uppercase">Aura Studio</span>
               <span className="block text-[10.5px] tracking-[0.16em] text-[#f2ebdd]/50 uppercase">
-                {modo === "admin" ? "Administrador" : "Profesional"}
+                {modo === "admin" ? "Administrador" : modo === "vendedor" ? "Ventas" : "Profesional"}
               </span>
             </span>
           </div>
@@ -143,13 +158,13 @@ function ShellInterno({ modo, children }: { modo: ModoApp; children: ReactNode }
       >
         <ul className="mx-auto flex max-w-xl items-end justify-around px-2">
           {izquierda.map((it) =>
-            modo === "admin" && it.to === "/app/chats" ? (
+            modo !== "profesional" && it.to === "/app/chats" ? (
               <AvisoChats key={it.to}>{(n) => <Pestana item={it} aviso={n} />}</AvisoChats>
             ) : (
               <Pestana key={it.to} item={it} aviso={0} />
             ),
           )}
-          {modo === "admin" ? (
+          {modo !== "profesional" ? (
             <li className="flex-1">
               <button
                 type="button"
@@ -168,12 +183,14 @@ function ShellInterno({ modo, children }: { modo: ModoApp; children: ReactNode }
         </ul>
       </nav>
 
-      {modo === "admin" ? (
+      {modo !== "profesional" ? (
         <WalkInDialog
           open={nuevaReserva}
           onOpenChange={setNuevaReserva}
           onGuardado={() => window.dispatchEvent(new Event(EVENTO_CITA_GUARDADA))}
           titulo="Nueva reserva"
+          modo="reserva"
+          puedeCerrarAtencion={modo === "admin"}
         />
       ) : null}
       <CambiarContrasenaDialog open={contrasena} onOpenChange={setContrasena} />

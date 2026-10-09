@@ -239,7 +239,7 @@ export default function Agenda({ modo }: { modo: ModoApp }) {
         </button>
       ) : null}
 
-      {modo === "admin" ? (
+      {modo !== "profesional" ? (
         <div className="mb-4 grid grid-cols-2 gap-2">
           <Select value={filtroProf} onValueChange={(v) => setFiltroProf(v ?? "all")}>
             <SelectTrigger className="h-10 w-full rounded-xl">
@@ -301,7 +301,7 @@ export default function Agenda({ modo }: { modo: ModoApp }) {
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border px-6 py-12 text-center">
           <CalendarX2 className="size-7 text-muted-foreground/60" strokeWidth={1.5} />
           <p className="text-[13.5px] text-muted-foreground">
-            {modo === "profesional" ? "No tienes citas este día." : "No hay citas este día."}
+            {modo === "profesional" ? "No tienes citas este día." : "No hay reservas este día."}
           </p>
           {modo === "profesional" ? (
             <Link
@@ -424,12 +424,18 @@ function TarjetaCita({
       <div className="mt-3 flex flex-wrap gap-2">
         {cita.estado === "confirmada" ? (
           <>
-            <Button variant="gold" size="sm" className="flex-1" disabled={ocupada} onClick={() => onEstado("completada")}>
-              Atendida
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1" disabled={ocupada} onClick={() => onEstado("no_asistio")}>
-              No vino
-            </Button>
+            {/* Registrar lo que pasó en el salón (atendida / no vino) es de la
+                profesional o la administradora; un vendedor solo agenda y cancela. */}
+            {modo !== "vendedor" ? (
+              <>
+                <Button variant="gold" size="sm" className="flex-1" disabled={ocupada} onClick={() => onEstado("completada")}>
+                  Atendida
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1" disabled={ocupada} onClick={() => onEstado("no_asistio")}>
+                  No vino
+                </Button>
+              </>
+            ) : null}
             {confirmandoCancelar ? (
               <Button variant="destructive" size="sm" disabled={ocupada} onClick={() => onEstado("cancelada")}>
                 Sí, cancelar
@@ -440,6 +446,8 @@ function TarjetaCita({
               </Button>
             )}
           </>
+        ) : modo === "vendedor" && cita.estado !== "cancelada" ? (
+          <p className="text-[12px] text-muted-foreground">Ya quedó registrada por quien atendió.</p>
         ) : cita.estado === "cancelada" && modo === "profesional" ? (
           // Una cita cancelada la pudo cancelar la clienta: reabrirla es cosa de
           // recepción, que puede avisarle y revisar que el horario siga libre.

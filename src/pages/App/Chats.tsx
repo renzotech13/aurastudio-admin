@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
-import { Megaphone, Search } from "lucide-react"
+import { Bell, BellOff, Megaphone, Search } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/lib/auth"
+import { useAvisos } from "@/lib/avisos"
 import {
   type Cliente,
   type ClienteEtiqueta,
@@ -17,6 +19,7 @@ import ConversationList from "@/pages/CRM/ConversationList"
 import ChatThread from "@/pages/CRM/ChatThread"
 import PromoDialog from "@/pages/CRM/PromoDialog"
 import { esperaRespuesta } from "@/pages/CRM/utils"
+import type { ModoApp } from "@/components/AppMovilShell"
 
 type FiltroEstado = "todas" | "atencion" | "mias" | "sin_asignar" | "humano" | "cerradas"
 
@@ -40,8 +43,9 @@ const FILTROS_ESTADO: { key: FiltroEstado; label: string }[] = [
  * ConversationList, ChatThread y PromoDialog, así que no hay una segunda
  * lógica que mantener — solo cambia el marco.
  */
-export default function Chats() {
+export default function Chats({ modo }: { modo: ModoApp }) {
   const { session } = useAuth()
+  const { avisosActivos, activar: activarAvisos, desactivar: desactivarAvisos } = useAvisos()
 
   const [conversaciones, setConversaciones] = useState<ConversacionResumen[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
@@ -51,7 +55,17 @@ export default function Chats() {
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState<FiltroEstado>("todas")
   const [busqueda, setBusqueda] = useState("")
-  const [abiertaId, setAbiertaId] = useState<string | null>(null)
+  // `?c=<id>` abre ese chat directo: lo usan «Por cerrar» y los enlaces de aviso.
+  const [params, setParams] = useSearchParams()
+  const [abiertaId, setAbiertaIdEstado] = useState<string | null>(() => params.get("c"))
+  const setAbiertaId = (id: string | null) => {
+    setAbiertaIdEstado(id)
+    if (id === null && params.has("c")) {
+      const siguiente = new URLSearchParams(params)
+      siguiente.delete("c")
+      setParams(siguiente, { replace: true })
+    }
+  }
   const [promoAbierto, setPromoAbierto] = useState(false)
 
   useEffect(() => {
@@ -127,6 +141,18 @@ export default function Chats() {
   }, [conversaciones, filtro, busqueda, session?.user.id])
 
   const abierta = conversaciones.find((c) => c.id === abiertaId) ?? null
+
+  // Los avisos (lib/avisos.tsx) leen de acá cuál es el chat abierto, para no
+  // interrumpir con un mensaje que ya se está viendo en pantalla.
+  useEffect(() => {
+    try {
+      const clave = "aura-bandeja-filtros"
+      const previo = JSON.parse(localStorage.getItem(clave) ?? "{}")
+      localStorage.setItem(clave, JSON.stringify({ ...previo, seleccionadaId: abiertaId }))
+    } catch {
+      // Solo es comodidad: si el almacenamiento falla, se avisa de más y nada se rompe.
+    }
+  }, [abiertaId])
   const sinResponder = conversaciones.filter(esperaRespuesta).length
 
   return (
@@ -139,15 +165,31 @@ export default function Chats() {
             {loading ? "Cargando…" : `${sinResponder} sin responder`}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setPromoAbierto(true)}
-          aria-label="Enviar promoción"
-          className="flex items-center gap-1.5 rounded-full border border-gold/50 px-3 py-2 text-[12.5px] text-gold-deep dark:text-gold"
-        >
-          <Megaphone className="size-3.5" />
-          Promo
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Avisos de mensajes nuevos: sonido y notificación del navegador.
+              Hay que prenderlos a propósito; pedir el permiso sin avisar suele terminar bloqueado. */}
+          <button
+            type="button"
+            onClick={() => (avisosActivos ? desactivarAvisos() : activarAvisos())}
+            aria-label={avisosActivos ? "Desactivar avisos de mensajes nuevos" : "Activar avisos de mensajes nuevos"}
+            aria-pressed={avisosActivos}
+            className="flex size-9 items-center justify-center rounded-full border border-border text-muted-foreground"
+          >
+            {avisosActivos ? <Bell className="size-4 text-gold-deep dark:text-gold" /> : <BellOff className="size-4" />}
+          </button>
+          {/* Las promociones masivas son de la administradora: un vendedor no las manda. */}
+          {modo === "admin" ? (
+            <button
+              type="button"
+              onClick={() => setPromoAbierto(true)}
+              aria-label="Enviar promoción"
+              className="flex items-center gap-1.5 rounded-full border border-gold/50 px-3 py-2 text-[12.5px] text-gold-deep dark:text-gold"
+            >
+              <Megaphone className="size-3.5" />
+              Promo
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="relative mb-3">
@@ -201,13 +243,15 @@ export default function Chats() {
         </div>
       ) : null}
 
-      <PromoDialog
-        open={promoAbierto}
-        onOpenChange={setPromoAbierto}
-        etiquetas={etiquetas}
-        etiquetasPorCliente={etiquetasPorCliente}
-        clientes={clientes}
-      />
+      {modo === "admin" ? (
+        <PromoDialog
+          open={promoAbierto}
+          onOpenChange={setPromoAbierto}
+          etiquetas={etiquetas}
+          etiquetasPorCliente={etiquetasPorCliente}
+          clientes={clientes}
+        />
+      ) : null}
     </div>
   )
 }

@@ -50,11 +50,24 @@ export default function WalkInDialog({
   onOpenChange,
   onGuardado,
   titulo = "Registrar atención sin reserva",
+  modo = "atencion",
+  puedeCerrarAtencion = true,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onGuardado: () => void
   titulo?: string
+  /**
+   * «atencion»: lo que acaba de pasar o está pasando (estado y cobro a la vista,
+   * como siempre). «reserva»: una cita a futuro — nace «confirmada» y solo
+   * muestra el cobro si se marca «Ya se atendió».
+   */
+  modo?: "atencion" | "reserva"
+  /**
+   * Un vendedor agenda, pero no registra lo que pasó en el salón ni cobra:
+   * sin estado ni cobro. El bot lo exige también (lib/vendedorReglas.ts).
+   */
+  puedeCerrarAtencion?: boolean
 }) {
   const { session } = useAuth()
   const { sedes, profesionales } = useEquipo()
@@ -76,7 +89,7 @@ export default function WalkInDialog({
   const [profesionalId, setProfesionalId] = useState("")
   const [servicioIds, setServicioIds] = useState<string[]>([])
   const [inicio, setInicio] = useState(ahoraEnLima())
-  const [estado, setEstado] = useState<"completada" | "confirmada">("completada")
+  const [estado, setEstado] = useState<"completada" | "confirmada">(modo === "reserva" ? "confirmada" : "completada")
   const [comentario, setComentario] = useState("")
   const [cobrar, setCobrar] = useState(true)
   const [monto, setMonto] = useState("")
@@ -95,7 +108,7 @@ export default function WalkInDialog({
     setFiltroCategoria("todos")
     setProfesionalId("")
     setInicio(ahoraEnLima())
-    setEstado("completada")
+    setEstado(modo === "reserva" ? "confirmada" : "completada")
     setComentario("")
     setCobrar(true)
     setMonto("")
@@ -127,6 +140,7 @@ export default function WalkInDialog({
         (cajas.data ?? []).map((c) => ({ id: c.id as string, sede_id: c.sede_id as string | null })),
       )
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   useEffect(() => {
@@ -233,7 +247,10 @@ export default function WalkInDialog({
     [sesionesAbiertas, sedeId],
   )
   const montoNum = precioNumerico(monto) ?? 0
-  const registrarCobro = cobrar && !!sesionAbierta
+  // El cobro solo existe para quien puede registrar lo atendido, y en una
+  // reserva solo si se marcó «Ya se atendió».
+  const aceptaCobro = puedeCerrarAtencion && (modo === "atencion" || estado === "completada")
+  const registrarCobro = aceptaCobro && cobrar && !!sesionAbierta
 
   const valido =
     (!!cliente || (nombre.trim().length > 1 && telefono.replace(/\D/g, "").length >= 6)) &&
@@ -495,6 +512,7 @@ export default function WalkInDialog({
             ) : null}
           </div>
 
+          {puedeCerrarAtencion ? (
           <div className="flex flex-col gap-2">
             <Label>Estado</Label>
             <div className="flex gap-2">
@@ -516,7 +534,9 @@ export default function WalkInDialog({
               ))}
             </div>
           </div>
+          ) : null}
 
+          {aceptaCobro ? (
           <div className="flex flex-col gap-2">
             <Label>Cobro</Label>
             {!sesionAbierta ? (
@@ -578,6 +598,7 @@ export default function WalkInDialog({
               </>
             )}
           </div>
+          ) : null}
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="walkin-nota">Nota (opcional)</Label>

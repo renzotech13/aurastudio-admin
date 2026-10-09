@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Bot,
   ChevronDown,
+  CalendarClock,
   ChevronLeft,
   ExternalLink,
   Loader2,
@@ -51,6 +52,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { useUrlFirmada } from "@/lib/media"
+import MensajeProgramado from "./MensajeProgramado"
 import { horasRestantesVentana, puedeRespuestaPrivada, ventanaAbierta, ventanaMeta } from "./utils"
 
 function horaCorta(iso: string) {
@@ -208,6 +210,7 @@ export default function ChatThread({
   const [respuestas, setRespuestas] = useState<RespuestaRapida[]>([])
   const [modoCompositor, setModoCompositor] = useState<ModoCompositor>("responder")
   const [selectorAtajos, setSelectorAtajos] = useState(false)
+  const [programando, setProgramando] = useState(false)
   const [ultimaCita, setUltimaCita] = useState<Cita | null>(null)
   const [sugiriendo, setSugiriendo] = useState(false)
   const [humanAgentAprobado, setHumanAgentAprobado] = useState(false)
@@ -624,7 +627,9 @@ export default function ChatThread({
           </div>
         )}
 
-        <div className="flex items-end gap-2">
+        {/* En un celular el texto ocupa toda la fila y los botones van debajo;
+            en pantallas anchas todo queda en una sola línea. */}
+        <div className="flex flex-wrap items-end gap-2 sm:flex-nowrap">
           {modoCompositor === "responder" && !esComentario && (
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -644,6 +649,19 @@ export default function ChatThread({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+          )}
+
+          {modoCompositor === "responder" && !esComentario && (
+            <button
+              type="button"
+              onClick={() => setProgramando(true)}
+              disabled={!ventana.abierta}
+              className="inline-flex h-9 shrink-0 items-center rounded-md border border-border px-2.5 text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Programar un mensaje"
+              title="Programar un mensaje para más tarde"
+            >
+              <CalendarClock className="size-4" />
+            </button>
           )}
 
           <Textarea
@@ -670,12 +688,12 @@ export default function ChatThread({
             }
             disabled={!puedeEnviarTexto || enviando || (esComentario && modoCompositor === "responder")}
             rows={2}
-            className="min-h-0 resize-none"
+            className="order-first min-h-0 basis-full resize-none sm:order-none sm:basis-auto"
           />
           <Button
             type="submit"
             disabled={!puedeEnviarTexto || enviando || !texto.trim() || (esComentario && modoCompositor === "responder")}
-            className="gap-1.5"
+            className="ml-auto gap-1.5 sm:ml-0"
           >
             <Send className="size-4" />
             {modoCompositor === "nota" ? "Guardar" : "Enviar"}
@@ -693,6 +711,8 @@ export default function ChatThread({
           </p>
         )}
       </form>
+
+      <MensajeProgramado conversacion={conversacion} open={programando} onOpenChange={setProgramando} />
 
       {comentarioActivo && (
         <div className="absolute inset-0 z-20 flex items-end justify-center bg-black/30 p-4 sm:items-center" onClick={() => setComentarioActivo(null)}>

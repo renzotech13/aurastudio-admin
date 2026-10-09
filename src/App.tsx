@@ -21,6 +21,8 @@ import AppClientas from "@/pages/App/Clientas"
 import AppRegistrar from "@/pages/App/Registrar"
 import AppVender from "@/pages/App/Vender"
 import AppMas from "@/pages/App/Mas"
+import AppPorCerrar from "@/pages/App/PorCerrar"
+import AppDirectorio from "@/pages/App/Directorio"
 import AppShell from "@/components/AppShell"
 import AppMovilShell from "@/components/AppMovilShell"
 import { Button } from "@/components/ui/button"
@@ -84,6 +86,9 @@ function Gate() {
   if (role === "profesional") {
     return profesionalId ? <Navigate to="/app" replace /> : <SinAcceso />
   }
+  // El vendedor solo existe en la app: el panel de escritorio depende de
+  // is_staff(), que para él es false — vería todo vacío.
+  if (role === "vendedor") return <Navigate to="/app" replace />
   if (role !== "staff") return <SinAcceso />
   if (esCelular()) return <Navigate to="/app" replace />
 
@@ -125,10 +130,25 @@ function GateApp() {
         <Routes>
           <Route index element={<Resumen />} />
           <Route path="agenda" element={<AppAgenda modo="admin" />} />
-          <Route path="chats" element={<AppChats />} />
+          <Route path="chats" element={<AppChats modo="admin" />} />
           <Route path="caja" element={<Caja />} />
           <Route path="mas" element={<AppMas />} />
           <Route path="*" element={<Navigate to="/app" replace />} />
+        </Routes>
+      </AppMovilShell>
+    )
+  }
+
+  if (role === "vendedor") {
+    return (
+      <AppMovilShell modo="vendedor">
+        <Routes>
+          <Route index element={<Navigate to="/app/chats" replace />} />
+          <Route path="chats" element={<AppChats modo="vendedor" />} />
+          <Route path="por-cerrar" element={<AppPorCerrar />} />
+          <Route path="reservas" element={<AppAgenda modo="vendedor" />} />
+          <Route path="clientas" element={<AppDirectorio />} />
+          <Route path="*" element={<Navigate to="/app/chats" replace />} />
         </Routes>
       </AppMovilShell>
     )

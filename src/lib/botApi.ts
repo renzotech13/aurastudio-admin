@@ -52,6 +52,8 @@ const MENSAJES_ERROR: Record<string, string> = {
   // App de la profesional.
   caja_cerrada: "No hay una caja abierta en tu local. Avisa a recepción para que la abra.",
   servicio_no_permitido: "Ese servicio no está entre los que haces tú.",
+  solo_administracion: "Eso lo registra la administradora o la profesional que atendió.",
+  fecha_pasada: "Una reserva tiene que ser desde ahora en adelante. Para una atención que ya pasó, avisa a recepción.",
   fuera_de_rango: "Solo puedes anotar atenciones de los últimos dos días o de las próximas 24 horas.",
   profesional_inactiva: "Tu cuenta ya no está activa. Habla con el administrador.",
 }
