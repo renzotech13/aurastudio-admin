@@ -246,3 +246,42 @@ export function registrarVentaProfesional(params: {
 }) {
   return post<{ movimiento: { id: string; concepto: string; monto: number } }>("/equipo/ventas", params)
 }
+
+// ---- Campañas (bot/src/routes/campanias.ts) ----
+
+export type EstadoPlantillaMeta = PlantillaWhatsapp["estado"] | null
+
+export type PlantillaCampania = {
+  clave: string
+  nombre: string
+  titulo: string
+  descripcion: string
+  categoria: "UTILITY" | "MARKETING"
+  cuerpo: string
+  pie: string | null
+  botones: string[]
+  /** La manda el bot sola (recordatorio): no hay envío por lote, solo prueba. */
+  automatica: boolean
+  /** Estado en Meta; null = todavía no se mandó a aprobar. */
+  estado: EstadoPlantillaMeta
+  /** Motivo por el que hoy no se puede mandar el lote (fuera de sus fechas), o null. */
+  fueraDeFecha: string | null
+  revisadas: number
+  alcanza: number
+  excluidas: { motivo: string; cantidad: number }[]
+  muestra: { nombre: string | null; telefono: string }[]
+}
+
+export function listarCampanias() {
+  return get<{ metaDisponible: boolean; plantillas: PlantillaCampania[] }>("/admin/campanias")
+}
+
+export function crearPlantillaCampania(clave: string) {
+  return post<{ estado: string; creada: boolean }>("/admin/campanias/plantilla", { clave })
+}
+
+export type ResultadoEnvioCampania = { enviados: number; fallidos: { telefono: string; motivo: string }[]; quedan: number }
+
+export function enviarCampania(params: { clave: string; limite?: number; telefonos?: string[] }) {
+  return post<ResultadoEnvioCampania>("/admin/campanias/enviar", params)
+}

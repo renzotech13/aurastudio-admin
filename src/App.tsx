@@ -14,6 +14,7 @@ import Canales from "@/pages/Canales"
 import Disponibilidad from "@/pages/Disponibilidad"
 import Multimedia from "@/pages/Multimedia"
 import RevisionGuias from "@/pages/RevisionGuias"
+import Campanias from "@/pages/Campanias"
 import RevisionPublica from "@/pages/RevisionPublica"
 import AppAgenda from "@/pages/App/Agenda"
 import AppChats from "@/pages/App/Chats"
@@ -107,6 +108,7 @@ function Gate() {
         <Route path="/conversaciones" element={<CRM />} />
         <Route path="/conversaciones/metricas" element={<Metricas />} />
         <Route path="/canales" element={<Canales />} />
+        <Route path="/campanias" element={<Campanias />} />
         <Route path="/multimedia" element={<Multimedia />} />
         <Route path="/revision-guias" element={<RevisionGuias />} />
         <Route path="*" element={<Navigate to="/resumen" replace />} />
